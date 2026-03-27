@@ -119,14 +119,38 @@
         document.getElementById('percDisp').innerText = dispPerc + '%';
     }
 
-    function nuevoRegistro() {
-        alert("Aquí se abriría un formulario para guardar en la base de datos.");
+    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyPTKRi6vDUxH9eIQNwh8XZCZAucg44Dr0TvywARJ64bUcYCVfmkPnk9nsSjf6g5DyxoA/exec';
+
+async function guardarEnGoogle() {
+    const nuevaUbi = {
+        id: prompt("Ingrese Código de Ubicación:"),
+        zona: prompt("Ingrese Zona/Fila:"),
+        material: prompt("Ingrese Material:"),
+        estado: "Ocupado"
+    };
+
+    if(!nuevaUbi.id) return; // Cancelar si está vacío
+
+    try {
+        const response = await fetch(SCRIPT_URL, {
+            method: 'POST',
+            body: JSON.stringify(nuevaUbi)
+        });
+        
+        if (response.ok) {
+            alert("¡Dato guardado en Google Sheets, jefe!");
+            location.reload(); // Recarga para ver el nuevo dato
+        }
+    } catch (error) {
+        console.error("Error:", error);
+        alert("Falló el envío, revisa la conexión.");
     }
+}
 
     // Carga inicial
     renderTable(ubicaciones);
 </script>
 
-<script src='https://script.google.com/macros/s/AKfycbyPTKRi6vDUxH9eIQNwh8XZCZAucg44Dr0TvywARJ64bUcYCVfmkPnk9nsSjf6g5DyxoA/exec'></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
