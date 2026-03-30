@@ -10,10 +10,9 @@
     <style>
         body { background-color: #f0f2f5; font-family: 'Segoe UI', sans-serif; overflow-x: hidden; }
         .navbar { background-color: #1a5928; border-bottom: 4px solid #f9ca24; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        .kpi-card { border: none; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); transition: transform 0.2s; position: relative; overflow: hidden; }
-        .kpi-icon { font-size: 2.2rem; opacity: 0.1; position: absolute; right: 10px; bottom: -5px; }
-        .kpi-title { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: #6c757d; }
-        .kpi-value { font-size: 1.8rem; font-weight: 800; margin: 5px 0; }
+        .kpi-card { border: none; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); transition: transform 0.2s; position: relative; overflow: hidden; height: 100%; }
+        .kpi-title { font-size: 0.65rem; font-weight: 700; text-transform: uppercase; color: #6c757d; }
+        .kpi-value { font-size: 1.5rem; font-weight: 800; margin: 2px 0; }
         .nav-pills .nav-link.active { background-color: #1a5928; color: white; }
         .nav-link { color: #1a5928; font-weight: 600; font-size: 0.9rem; border: 1px solid #1a5928; margin: 0 5px; }
         .table-container { height: 400px; overflow-y: auto; border: 1px solid #dee2e6; background: white; border-radius: 10px; }
@@ -22,8 +21,13 @@
         .chart-wrapper { flex-grow: 1; position: relative; max-height: 250px; } 
         .info-box { background: white; padding: 15px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); height: 350px; overflow-y: auto; }
         .status-badge { font-size: 0.7rem; padding: 4px 10px; border-radius: 20px; font-weight: bold; }
+        
+        /* COLORES DE ESTADOS */
         .bg-disponible { background-color: #d1e7dd; color: #0f5132; }
-        .bg-ocupado { background-color: #f8d7da; color: #842029; }
+        .bg-ocupado { background-color: #cfe2ff; color: #084298; border: 1px solid #b6d4fe; }
+        .bg-sobrestock { background-color: #f8d7da; color: #842029; border: 1px solid #f5c2c7; }
+        .bg-sin-stock { background-color: #fff3cd; color: #856404; border: 1px solid #ffeeba; }
+        
         #loader-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: white; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; }
     </style>
 </head>
@@ -50,25 +54,35 @@
 
     <div class="tab-content" id="pills-tabContent">
         <div class="tab-pane fade show active" id="view-resumen" role="tabpanel">
-            <div class="row g-3 mb-3 text-center">
-                <div class="col-4">
-                    <div class="card kpi-card p-3 border-start border-primary border-5">
+            <div class="row g-2 mb-3 text-center">
+                <div class="col">
+                    <div class="card kpi-card p-2 border-start border-dark border-4">
                         <span class="kpi-title">Capacidad</span>
                         <div class="kpi-value" id="totalUbi">0</div>
                     </div>
                 </div>
-                <div class="col-4">
-                    <div class="card kpi-card p-3 border-start border-danger border-5">
+                <div class="col">
+                    <div class="card kpi-card p-2 border-start border-primary border-4">
                         <span class="kpi-title">Ocupado</span>
-                        <div class="kpi-value text-danger" id="valOcupado">0</div>
-                        <span class="fw-bold text-danger small" id="percOcupado">0% del total</span>
+                        <div class="kpi-value text-primary" id="valOcupado">0</div>
                     </div>
                 </div>
-                <div class="col-4">
-                    <div class="card kpi-card p-3 border-start border-success border-5">
-                        <span class="kpi-title">Disponible</span>
+                <div class="col">
+                    <div class="card kpi-card p-2 border-start border-danger border-4">
+                        <span class="kpi-title">Sobrestock</span>
+                        <div class="kpi-value text-danger" id="valSobre">0</div>
+                    </div>
+                </div>
+                <div class="col">
+                    <div class="card kpi-card p-2 border-start border-warning border-4">
+                        <span class="kpi-title">Stock 0</span>
+                        <div class="kpi-value text-warning" id="valSinStock">0</div>
+                    </div>
+                </div>
+                <div class="col">
+                    <div class="card kpi-card p-2 border-start border-success border-4">
+                        <span class="kpi-title">Libre</span>
                         <div class="kpi-value text-success" id="valDisponible">0</div>
-                        <span class="fw-bold text-success small" id="percDisponible">0% del total</span>
                     </div>
                 </div>
             </div>
@@ -154,9 +168,12 @@
         const tbody = document.getElementById('tableBody');
         if (!tbody) return;
         tbody.innerHTML = '';
-        // Renderizamos 100 para fluidez
         data.slice(0, 100).forEach(item => {
-            const badge = item.estado === 'DISPONIBLE' ? 'bg-disponible' : 'bg-ocupado';
+            let badge = 'bg-disponible';
+            if (item.estado === 'OCUPADO') badge = 'bg-ocupado';
+            if (item.estado === 'SOBRESTOCK') badge = 'bg-sobrestock';
+            if (item.estado === 'SIN STOCK') badge = 'bg-sin-stock';
+
             tbody.innerHTML += `<tr><td><strong>${item.id}</strong></td><td>${item.zona}</td><td><small>${item.material || '-'}</small></td><td><span class="status-badge ${badge}">${item.estado}</span></td></tr>`;
         });
     }
@@ -164,20 +181,23 @@
     function actualizarKPIs(data) {
         const total = data.length;
         const ocupadas = data.filter(u => u.estado === 'OCUPADO').length;
-        const disp = total - ocupadas;
-        const pOcupado = total > 0 ? ((ocupadas / total) * 100).toFixed(1) : 0;
+        const sobrestock = data.filter(u => u.estado === 'SOBRESTOCK').length;
+        const sinStock = data.filter(u => u.estado === 'SIN STOCK').length;
+        const disp = data.filter(u => u.estado === 'DISPONIBLE').length;
+
         document.getElementById('totalUbi').innerText = total;
         document.getElementById('valOcupado').innerText = ocupadas;
-        document.getElementById('percOcupado').innerText = `${pOcupado}% del total`;
+        document.getElementById('valSobre').innerText = sobrestock;
+        document.getElementById('valSinStock').innerText = sinStock;
         document.getElementById('valDisponible').innerText = disp;
-        document.getElementById('percDisponible').innerText = `${(100 - pOcupado).toFixed(1)}% del total`;
     }
 
     function renderGrafico(data) {
         const ctx = document.getElementById('ctxGrafico');
         if (!ctx) return;
         const zonas = [...new Set(data.map(u => u.zona))].sort();
-        const dataset = zonas.map(z => data.filter(u => u.zona === z && u.estado === 'OCUPADO').length);
+        // El gráfico suma todo lo que no esté disponible por zona
+        const dataset = zonas.map(z => data.filter(u => u.zona === z && u.estado !== 'DISPONIBLE').length);
         if (miGrafico) miGrafico.destroy();
         miGrafico = new Chart(ctx, {
             type: 'doughnut', 
@@ -193,10 +213,10 @@
         let html = '<div class="row row-cols-1 row-cols-md-2 g-2">';
         zonas.forEach(z => {
             const totalZ = data.filter(u => u.zona === z).length;
-            const ocupZ = data.filter(u => u.zona === z && u.estado === 'OCUPADO').length;
-            const dispZ = totalZ - ocupZ;
-            const pDisp = totalZ > 0 ? ((dispZ / totalZ) * 100).toFixed(0) : 0;
-            html += `<div class="col"><div class="p-2 border rounded bg-light small"><div class="d-flex justify-content-between fw-bold mb-1"><span>${z}</span><span class="text-success">${dispZ} Libres (${pDisp}%)</span></div><div class="progress" style="height: 6px;"><div class="progress-bar bg-success" style="width: ${100-pDisp}%"></div></div></div></div>`;
+            const dispZ = data.filter(u => u.zona === z && u.estado === 'DISPONIBLE').length;
+            const pOcup = totalZ > 0 ? (((totalZ - dispZ) / totalZ) * 100).toFixed(0) : 0;
+            
+            html += `<div class="col"><div class="p-2 border rounded bg-light small"><div class="d-flex justify-content-between fw-bold mb-1"><span>${z}</span><span class="text-success">${dispZ} Libres</span></div><div class="progress" style="height: 6px;"><div class="progress-bar bg-success" style="width: ${pOcup}%"></div></div></div></div>`;
         });
         container.innerHTML = html + '</div>';
     }
@@ -208,7 +228,13 @@
         zs.forEach(z => { if(z) s.add(new Option(z,z)); });
     }
 
-    function filtrar(tipo) { renderTable(tipo === 'TODOS' ? ubicaciones : ubicaciones.filter(u => u.estado === tipo)); }
+    function filtrar(tipo) { 
+        if (tipo === 'TODOS') {
+            renderTable(ubicaciones);
+        } else {
+            renderTable(ubicaciones.filter(u => u.estado === tipo)); 
+        }
+    }
     
     function filtrarOrganizador() { 
         const v = document.getElementById('organizadorFilter').value; 
