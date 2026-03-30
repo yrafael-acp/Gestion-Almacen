@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard Almacén Pro - Agrícola Cerro Prieto</title>
+    <title>Dashboard Almacén - Cerro Prieto</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -11,122 +11,112 @@
         body { background-color: #f0f2f5; font-family: 'Segoe UI', sans-serif; overflow-x: hidden; }
         .navbar { background-color: #1a5928; border-bottom: 4px solid #f9ca24; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
         
-        /* KPIs Estilo Premium */
-        .kpi-card { border: none; border-radius: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); transition: transform 0.2s; position: relative; overflow: hidden; height: 100%; }
-        .kpi-card:hover { transform: translateY(-5px); }
-        .kpi-icon { font-size: 3rem; opacity: 0.1; position: absolute; right: 10px; bottom: -5px; }
-        .kpi-title { font-size: 0.8rem; font-weight: 700; text-transform: uppercase; color: #6c757d; }
-        .kpi-value { font-size: 1.8rem; font-weight: 800; margin: 10px 0; }
-        .kpi-subtext { font-size: 0.85rem; font-weight: 600; }
+        .kpi-card { border: none; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); transition: transform 0.2s; position: relative; overflow: hidden; }
+        .kpi-icon { font-size: 2.5rem; opacity: 0.1; position: absolute; right: 10px; bottom: -5px; }
+        .kpi-title { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: #6c757d; }
+        .kpi-value { font-size: 1.8rem; font-weight: 800; margin: 5px 0; }
         
-        .nav-pills .nav-link { color: #1a5928; font-weight: 600; border-radius: 10px; margin: 0 5px; }
-        .nav-pills .nav-link.active { background-color: #1a5928; color: white; }
+        .nav-pills .nav-link.active { background-color: #1a5928; }
+        .nav-link { color: #1a5928; font-weight: 600; font-size: 0.9rem; }
 
-        .table-container { height: 450px; overflow-y: auto; border: 1px solid #dee2e6; background: white; border-radius: 12px; }
-        thead { position: sticky; top: 0; background-color: #f8f9fa; z-index: 10; border-bottom: 2px solid #dee2e6; }
+        .table-container { height: 450px; overflow-y: auto; border: 1px solid #dee2e6; background: white; border-radius: 10px; }
+        thead { position: sticky; top: 0; background-color: #f8f9fa; z-index: 10; }
         
-        .status-badge { font-size: 0.7rem; padding: 4px 10px; border-radius: 20px; font-weight: bold; }
-        .bg-disponible { background-color: #d1e7dd; color: #0f5132; }
-        .bg-ocupado { background-color: #f8d7da; color: #842029; }
-
-        #loader-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.9); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-        .chart-container { background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+        /* BOXES DEL DASHBOARD */
+        .chart-box { background: white; padding: 15px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); min-height: 350px; }
+        .info-box { background: white; padding: 15px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); min-height: 350px; overflow-y: auto; }
+        
+        #loader-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: white; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; }
     </style>
 </head>
 <body>
 
 <div id="loader-overlay">
-    <div class="spinner-grow text-success" role="status"></div>
-    <span class="mt-3 fw-bold text-success">Cargando Dashboard Maestro...</span>
+    <div class="spinner-border text-success" role="status"></div>
+    <span class="mt-2 fw-bold text-success">Actualizando Dashboard...</span>
 </div>
 
-<nav class="navbar navbar-dark mb-4 px-3">
-    <span class="navbar-brand mb-0 h1"><i class="bi bi-bar-chart-steps me-2"></i> SISTEMA DE CONTROL - CERRO PRIETO</span>
+<nav class="navbar navbar-dark mb-3 px-3">
+    <span class="navbar-brand mb-0 h1"><i class="bi bi-cpu-fill me-2"></i> DASHBOARD OPERATIVO CP</span>
 </nav>
 
-<div class="container-fluid px-4">
-    
-    <ul class="nav nav-pills mb-4 justify-content-center" id="pills-tab" role="tablist">
-        <li class="nav-item">
-            <button class="nav-link active" data-bs-toggle="pill" data-bs-target="#view-resumen"><i class="bi bi-grid-1x2 me-2"></i>DASHBOARD</button>
-        </li>
-        <li class="nav-item">
-            <button class="nav-link" data-bs-toggle="pill" data-bs-target="#view-detalle"><i class="bi bi-list-check me-2"></i>DETALLE</button>
-        </li>
+<div class="container-fluid px-3">
+    <ul class="nav nav-pills mb-3 justify-content-center" id="pills-tab" role="tablist">
+        <li class="nav-item"><button class="nav-link active" data-bs-toggle="pill" data-bs-target="#view-resumen">RESUMEN</button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#view-detalle">DETALLE</button></li>
     </ul>
 
     <div class="tab-content">
-        
         <div class="tab-pane fade show active" id="view-resumen">
-            <div class="row g-3 mb-4">
+            <div class="row g-3 mb-3">
                 <div class="col-12 col-md-4">
                     <div class="card kpi-card p-3 border-start border-primary border-5">
-                        <span class="kpi-title">Capacidad Instalada</span>
+                        <span class="kpi-title">Capacidad Total</span>
                         <div class="kpi-value" id="totalUbi">0</div>
-                        <span class="text-primary small fw-bold">Ubicaciones Totales</span>
-                        <i class="bi bi-building-down kpi-icon"></i>
+                        <i class="bi bi-layers kpi-icon"></i>
                     </div>
                 </div>
                 <div class="col-12 col-md-4">
                     <div class="card kpi-card p-3 border-start border-danger border-5">
-                        <span class="kpi-title">Estado: Ocupado</span>
+                        <span class="kpi-title">Ocupado</span>
                         <div class="kpi-value text-danger" id="valOcupado">0</div>
-                        <span class="kpi-subtext text-danger" id="percOcupado">0% del total</span>
-                        <i class="bi bi-box-seam-fill kpi-icon"></i>
+                        <span class="fw-bold text-danger small" id="percOcupado">0% del total</span>
+                        <i class="bi bi-lock kpi-icon"></i>
                     </div>
                 </div>
                 <div class="col-12 col-md-4">
                     <div class="card kpi-card p-3 border-start border-success border-5">
-                        <span class="kpi-title">Estado: Disponible</span>
+                        <span class="kpi-title">Disponible</span>
                         <div class="kpi-value text-success" id="valDisponible">0</div>
-                        <span class="kpi-subtext text-success" id="percDisponible">0% del total</span>
-                        <i class="bi bi-unlock-fill kpi-icon"></i>
+                        <span class="fw-bold text-success small" id="percDisponible">0% del total</span>
+                        <i class="bi bi-unlock kpi-icon"></i>
                     </div>
                 </div>
             </div>
 
-            <div class="row">
-                <div class="col-12">
-                    <div class="chart-container">
-                        <h6 class="fw-bold text-muted mb-3"><i class="bi bi-graph-up me-2"></i>Ocupación por Organizador (Zona)</h6>
-                        <canvas id="ctxGrafico" height="100"></canvas>
+            <div class="row g-3">
+                <div class="col-12 col-lg-4">
+                    <div class="chart-box">
+                        <h6 class="fw-bold text-muted small mb-3"><i class="bi bi-pie-chart me-1"></i> OCUPACIÓN POR ZONA</h6>
+                        <canvas id="ctxGrafico"></canvas>
+                    </div>
+                </div>
+                
+                <div class="col-12 col-lg-8">
+                    <div class="info-box">
+                        <h6 class="fw-bold text-muted small mb-3"><i class="bi bi-info-square me-1"></i> ESTADO POR ORGANIZADOR</h6>
+                        <div id="resumenZonas">
+                            <p class="text-center text-muted mt-5">Cargando métricas por zona...</p>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
 
         <div class="tab-pane fade" id="view-detalle">
-            <div class="card p-3 shadow-sm border-0">
+            <div class="card p-3 border-0 shadow-sm">
                 <div class="row g-2 mb-3">
-                    <div class="col-12 col-md-4">
-                        <input type="text" id="searchInput" class="form-control" placeholder="Buscar código o material...">
-                    </div>
-                    <div class="col-12 col-md-4">
+                    <div class="col-md-4"><input type="text" id="searchInput" class="form-control" placeholder="Buscar..."></div>
+                    <div class="col-md-4">
                         <select id="organizadorFilter" class="form-select" onchange="filtrarOrganizador()">
-                            <option value="TODOS">Todos los Organizadores</option>
+                            <option value="TODOS">Todas las Zonas</option>
                         </select>
                     </div>
-                    <div class="col-12 col-md-4 d-flex gap-1">
+                    <div class="col-md-4 d-flex gap-1">
                         <button class="btn btn-dark flex-grow-1" onclick="filtrar('TODOS')">VER TODO</button>
-                        <button class="btn btn-primary" onclick="guardarEnGoogle()"><i class="bi bi-plus-lg"></i></button>
+                        <button class="btn btn-primary" onclick="guardarEnGoogle()">+</button>
                     </div>
                 </div>
                 <div class="table-container">
-                    <table class="table table-hover align-middle mb-0">
-                        <thead>
-                            <tr>
-                                <th>CÓDIGO</th>
-                                <th>ZONA/ORGANIZADOR</th>
-                                <th>MATERIAL</th>
-                                <th>ESTADO</th>
-                            </tr>
+                    <table class="table table-sm table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr><th>CÓDIGO</th><th>ZONA</th><th>MATERIAL</th><th>ESTADO</th></tr>
                         </thead>
                         <tbody id="tableBody"></tbody>
                     </table>
                 </div>
             </div>
         </div>
-
     </div>
 </div>
 
@@ -138,13 +128,11 @@
     async function cargarDatosDesdeGoogle() {
         const overlay = document.getElementById('loader-overlay');
         const cache = localStorage.getItem('cache_ubi');
-        
-        if (cache) {
-            ubicaciones = JSON.parse(cache);
-            actualizarInterfaz(ubicaciones);
-            overlay.style.display = 'none';
+        if (cache) { 
+            ubicaciones = JSON.parse(cache); 
+            actualizarInterfaz(ubicaciones); 
+            overlay.style.display = 'none'; 
         }
-
         try {
             const response = await fetch(SCRIPT_URL);
             const freshData = await response.json();
@@ -152,61 +140,68 @@
             localStorage.setItem('cache_ubi', JSON.stringify(freshData));
             actualizarInterfaz(freshData);
             overlay.style.display = 'none';
-        } catch (error) {
-            console.error(error);
-            if(!cache) overlay.innerHTML = '<div class="text-danger fw-bold">Falla de Red</div>';
-        }
+        } catch (e) { console.error(e); }
     }
 
     function actualizarInterfaz(data) {
         renderTable(data);
-        llenarSelectorOrganizadores();
         actualizarKPIs(data);
         renderGrafico(data);
+        generarListaZonas(data);
+        
+        const select = document.getElementById('organizadorFilter');
+        if(select.options.length <= 1) {
+            const zonas = [...new Set(data.map(u => u.zona))].sort();
+            zonas.forEach(z => { if(z) select.add(new Option(z,z)); });
+        }
     }
 
     function actualizarKPIs(data) {
         const total = data.length;
         const ocupadas = data.filter(u => u.estado === 'OCUPADO').length;
-        const disponibles = total - ocupadas;
-        
+        const disp = total - ocupadas;
         const pOcupado = total > 0 ? ((ocupadas / total) * 100).toFixed(1) : 0;
-        const pDisponible = total > 0 ? ((disponibles / total) * 100).toFixed(1) : 0;
-
-        document.getElementById('totalUbi').innerText = total;
         
+        document.getElementById('totalUbi').innerText = total;
         document.getElementById('valOcupado').innerText = ocupadas;
         document.getElementById('percOcupado').innerText = `${pOcupado}% del total`;
-        
-        document.getElementById('valDisponible').innerText = disponibles;
-        document.getElementById('percDisponible').innerText = `${pDisponible}% del total`;
+        document.getElementById('valDisponible').innerText = disp;
+        document.getElementById('percDisponible').innerText = `${(100 - pOcupado).toFixed(1)}% del total`;
     }
 
     function renderGrafico(data) {
         const ctx = document.getElementById('ctxGrafico').getContext('2d');
-        
-        // Agrupar por zona
         const zonas = [...new Set(data.map(u => u.zona))].sort();
-        const ocupadosPorZona = zonas.map(z => data.filter(u => u.zona === z && u.estado === 'OCUPADO').length);
-        const disponiblesPorZona = zonas.map(z => data.filter(u => u.zona === z && u.estado === 'DISPONIBLE').length);
+        const dataset = zonas.map(z => data.filter(u => u.zona === z && u.estado === 'OCUPADO').length);
 
         if (miGrafico) miGrafico.destroy();
-
         miGrafico = new Chart(ctx, {
-            type: 'bar',
+            type: 'doughnut', 
             data: {
                 labels: zonas,
-                datasets: [
-                    { label: 'Ocupado', data: ocupadosPorZona, backgroundColor: '#f8d7da', borderColor: '#842029', borderWidth: 1 },
-                    { label: 'Disponible', data: disponiblesPorZona, backgroundColor: '#d1e7dd', borderColor: '#0f5132', borderWidth: 1 }
-                ]
+                datasets: [{ data: dataset, backgroundColor: ['#1a5928', '#f9ca24', '#eb4d4b', '#6ab04c', '#7ed6df', '#22a6b3'] }]
             },
-            options: {
-                responsive: true,
-                scales: { x: { stacked: true }, y: { stacked: true, beginAtZero: true } },
-                plugins: { legend: { position: 'bottom' } }
-            }
+            options: { maintainAspectRatio: false, plugins: { legend: { display: false } } }
         });
+    }
+
+    function generarListaZonas(data) {
+        const container = document.getElementById('resumenZonas');
+        const zonas = [...new Set(data.map(u => u.zona))].sort();
+        let html = '<div class="row row-cols-1 row-cols-md-2 g-2">';
+        zonas.forEach(z => {
+            const totalZ = data.filter(u => u.zona === z).length;
+            const ocupZ = data.filter(u => u.zona === z && u.estado === 'OCUPADO').length;
+            const perc = ((ocupZ/totalZ)*100).toFixed(0);
+            html += `
+                <div class="col">
+                    <div class="p-2 border rounded bg-light">
+                        <div class="d-flex justify-content-between small fw-bold"><span>${z}</span><span>${perc}%</span></div>
+                        <div class="progress" style="height: 6px;"><div class="progress-bar bg-success" style="width: ${perc}%"></div></div>
+                    </div>
+                </div>`;
+        });
+        container.innerHTML = html + '</div>';
     }
 
     function renderTable(data) {
@@ -214,57 +209,12 @@
         tbody.innerHTML = '';
         data.slice(0, 100).forEach(item => {
             const badge = item.estado === 'DISPONIBLE' ? 'bg-disponible' : 'bg-ocupado';
-            tbody.innerHTML += `
-                <tr>
-                    <td><strong>${item.id}</strong></td>
-                    <td><small class="text-muted">${item.zona}</small></td>
-                    <td><small>${item.material || '---'}</small></td>
-                    <td><span class="status-badge ${badge}">${item.estado}</span></td>
-                </tr>`;
+            tbody.innerHTML += `<tr><td><strong>${item.id}</strong></td><td>${item.zona}</td><td><small>${item.material || '-'}</small></td><td><span class="status-badge ${badge}">${item.estado}</span></td></tr>`;
         });
     }
 
-    function llenarSelectorOrganizadores() {
-        const select = document.getElementById('organizadorFilter');
-        if(select.options.length > 1) return;
-        const zonas = [...new Set(ubicaciones.map(u => u.zona))].sort();
-        zonas.forEach(z => {
-            if(z) {
-                const opt = document.createElement('option');
-                opt.value = z; opt.textContent = z;
-                select.appendChild(opt);
-            }
-        });
-    }
-
-    function filtrar(tipo) {
-        const res = tipo === 'TODOS' ? ubicaciones : ubicaciones.filter(u => u.estado === tipo);
-        renderTable(res);
-    }
-
-    function filtrarOrganizador() {
-        const val = document.getElementById('organizadorFilter').value;
-        const res = val === 'TODOS' ? ubicaciones : ubicaciones.filter(u => u.zona === val);
-        renderTable(res);
-    }
-
-    let searchTimer;
-    document.getElementById('searchInput').addEventListener('input', (e) => {
-        clearTimeout(searchTimer);
-        searchTimer = setTimeout(() => {
-            const term = e.target.value.toLowerCase();
-            const res = ubicaciones.filter(u => (u.id + u.zona + u.material).toLowerCase().includes(term));
-            renderTable(res);
-        }, 300);
-    });
-
-    async function guardarEnGoogle() {
-        const id = prompt("Código:");
-        const zona = prompt("Zona:");
-        if(!id || !zona) return;
-        await fetch(SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({id, zona}) });
-        alert("Enviado. Recarga en un toque.");
-    }
+    function filtrar(tipo) { renderTable(tipo === 'TODOS' ? ubicaciones : ubicaciones.filter(u => u.estado === tipo)); }
+    function filtrarOrganizador() { const v = document.getElementById('organizadorFilter').value; renderTable(v === 'TODOS' ? ubicaciones : ubicaciones.filter(u => u.zona === v)); }
 
     window.onload = cargarDatosDesdeGoogle;
 </script>
