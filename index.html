@@ -13,7 +13,6 @@
         .bg-disponible { background-color: #d1e7dd; color: #0f5132; }
         .bg-ocupado { background-color: #f8d7da; color: #842029; }
         
-        /* CUADRO CON SCROLL INTERNO - Para ver el final de la lista */
         .table-container { 
             height: 500px; 
             overflow-y: auto; 
@@ -21,7 +20,6 @@
             background: white;
             border-radius: 8px;
         }
-        /* Cabecera fija */
         thead { position: sticky; top: 0; background-color: #f8f9fa; z-index: 1; border-bottom: 2px solid #dee2e6; }
         
         #loader { text-align: center; padding: 20px; font-weight: bold; color: #1a5928; }
@@ -58,14 +56,19 @@
 
     <div class="card p-3">
         <div class="row g-2 mb-3 align-items-center">
-            <div class="col-12 col-lg-4">
-                <input type="text" id="searchInput" class="form-control form-control-sm" placeholder="Buscar código, zona o material...">
+            <div class="col-12 col-md-4">
+                <input type="text" id="searchInput" class="form-control form-control-sm" placeholder="Buscar por código o material...">
             </div>
-            <div class="col-12 col-lg-8 d-flex gap-2">
-                <button class="btn btn-outline-secondary btn-sm btn-filter flex-grow-1" onclick="filtrar('TODOS')">Todos</button>
-                <button class="btn btn-success btn-sm btn-filter flex-grow-1" onclick="filtrar('DISPONIBLE')">Disponibles</button>
-                <button class="btn btn-danger btn-sm btn-filter flex-grow-1" onclick="filtrar('OCUPADO')">Ocupados</button>
-                <button class="btn btn-primary btn-sm" onclick="guardarEnGoogle()" title="Nuevo Registro">+</button>
+            <div class="col-12 col-md-3">
+                <select id="organizadorFilter" class="form-select form-select-sm" onchange="filtrarOrganizador()">
+                    <option value="TODOS">Todos los Organizadores</option>
+                </select>
+            </div>
+            <div class="col-12 col-md-5 d-flex gap-1">
+                <button class="btn btn-outline-secondary btn-sm btn-filter flex-grow-1" onclick="filtrar('TODOS')">Ver Todo</button>
+                <button class="btn btn-success btn-sm btn-filter flex-grow-1" onclick="filtrar('DISPONIBLE')">Libres</button>
+                <button class="btn btn-danger btn-sm btn-filter flex-grow-1" onclick="filtrar('OCUPADO')">Llenos</button>
+                <button class="btn btn-primary btn-sm px-3" onclick="guardarEnGoogle()">+</button>
             </div>
         </div>
         
@@ -105,17 +108,33 @@
             
             document.getElementById('loader').style.display = 'none';
             document.getElementById('mainWrapper').classList.remove('d-none');
+            
+            llenarSelectorOrganizadores();
             renderTable(ubicaciones);
         } catch (error) {
             console.error("Error:", error);
-            document.getElementById('loader').innerText = "⚠️ Error: No se pudo cargar la data.";
+            document.getElementById('loader').innerText = "⚠️ Error de conexión.";
         }
+    }
+
+    // Llena el selector con las zonas únicas del Excel
+    function llenarSelectorOrganizadores() {
+        const select = document.getElementById('organizadorFilter');
+        const zonasUnicas = [...new Set(ubicaciones.map(u => u.zona))].sort();
+        
+        zonasUnicas.forEach(zona => {
+            if(zona) {
+                const opt = document.createElement('option');
+                opt.value = zona;
+                opt.textContent = zona;
+                select.appendChild(opt);
+            }
+        });
     }
 
     function renderTable(data) {
         const tbody = document.getElementById('tableBody');
         tbody.innerHTML = '';
-        
         data.forEach((item) => {
             const badgeClass = item.estado === 'DISPONIBLE' ? 'bg-disponible' : 'bg-ocupado';
             tbody.innerHTML += `
@@ -124,14 +143,14 @@
                     <td><small>${item.zona}</small></td>
                     <td><small>${item.material ? item.material : '---'}</small></td>
                     <td><span class="status-badge ${badgeClass}">${item.estado}</span></td>
-                </tr>
-            `;
+                </tr>`;
         });
         actualizarKPIs(data);
     }
 
-    // FILTROS DE UN SOLO CLIC
+    // Filtro por Estado (Botones)
     function filtrar(tipo) {
+        document.getElementById('organizadorFilter').value = 'TODOS'; // Reset selector
         if (tipo === 'TODOS') {
             renderTable(ubicaciones);
         } else {
@@ -140,15 +159,23 @@
         }
     }
 
-    // BUSCADOR BLINDADO
+    // Filtro por Organizador (Selector)
+    function filtrarOrganizador() {
+        const zonaSeleccionada = document.getElementById('organizadorFilter').value;
+        if (zonaSeleccionada === 'TODOS') {
+            renderTable(ubicaciones);
+        } else {
+            const filtrados = ubicaciones.filter(u => u.zona === zonaSeleccionada);
+            renderTable(filtrados);
+        }
+    }
+
+    // Buscador General
     document.getElementById('searchInput').addEventListener('input', (e) => {
         const term = e.target.value.toLowerCase();
-        const filtered = ubicaciones.filter(u => {
-            const id = (u.id || "").toString().toLowerCase();
-            const zona = (u.zona || "").toString().toLowerCase();
-            const material = (u.material || "").toString().toLowerCase();
-            return id.includes(term) || zona.includes(term) || material.includes(term);
-        });
+        const filtered = ubicaciones.filter(u => 
+            (u.id + u.zona + u.material).toLowerCase().includes(term)
+        );
         renderTable(filtered);
     });
 
@@ -156,36 +183,28 @@
         const total = data.length;
         const ocupadas = data.filter(u => u.estado === 'OCUPADO').length;
         const dispPerc = total > 0 ? ((total - ocupadas) / total * 100).toFixed(1) : 0;
-
         document.getElementById('totalUbi').innerText = total;
         document.getElementById('totalOcupadas').innerText = ocupadas;
         document.getElementById('percDisp').innerText = dispPerc + '%';
     }
 
     async function guardarEnGoogle() {
-        const id = prompt("Ingrese Código de Ubicación:");
-        const zona = prompt("Ingrese Zona/Fila:");
-        const material = prompt("Ingrese Material:");
-
-        if(!id || !zona) {
-            alert("Código y zona obligatorios.");
-            return;
-        }
+        const id = prompt("Código:");
+        const zona = prompt("Zona:");
+        const material = prompt("Material:");
+        if(!id || !zona) return;
 
         const nuevaUbi = { id, zona, material, estado: "OCUPADO" };
-
         try {
             await fetch(SCRIPT_URL, {
                 method: 'POST',
                 mode: 'no-cors',
-                cache: 'no-cache',
                 body: JSON.stringify(nuevaUbi)
             });
-            alert("✅ Registro enviado. Recargando...");
+            alert("✅ Enviado. Recargando...");
             setTimeout(() => location.reload(), 1500); 
         } catch (error) {
             alert("Error al guardar.");
-            console.error(error);
         }
     }
 
