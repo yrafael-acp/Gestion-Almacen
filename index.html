@@ -22,13 +22,10 @@
         .chart-wrapper { flex-grow: 1; position: relative; max-height: 250px; } 
         .info-box { background: white; padding: 15px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); height: 350px; overflow-y: auto; }
         .status-badge { font-size: 0.7rem; padding: 4px 10px; border-radius: 20px; font-weight: bold; }
-        
-        /* COLORES DE ESTADOS */
         .bg-disponible { background-color: #d1e7dd; color: #0f5132; }
         .bg-ocupado { background-color: #cfe2ff; color: #084298; border: 1px solid #b6d4fe; }
         .bg-sobrestock { background-color: #f8d7da; color: #842029; border: 1px solid #f5c2c7; }
         .bg-sin-stock { background-color: #fff3cd; color: #856404; border: 1px solid #ffeeba; }
-        
         #loader-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: white; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; }
     </style>
 </head>
@@ -105,7 +102,7 @@
         <div class="tab-pane fade" id="view-detalle" role="tabpanel">
             <div class="card p-3 border-0 shadow-sm">
                 <div class="row g-2 mb-3">
-                    <div class="col-md-4"><input type="text" id="searchInput" class="form-control" placeholder="Buscar material o ID..."></div>
+                    <div class="col-md-8"><input type="text" id="searchInput" class="form-control" placeholder="Buscar material o ID..."></div>
                     <div class="col-md-4 d-flex gap-1">
                         <button class="btn btn-dark flex-grow-1" onclick="filtrar('TODOS')">TODO</button>
                     </div>
@@ -116,6 +113,15 @@
                         <tbody id="tableBody"></tbody>
                     </table>
                 </div>
+                <div class="d-flex justify-content-between align-items-center mt-3 bg-white p-2 rounded shadow-sm border">
+                    <button class="btn btn-sm btn-outline-success fw-bold" id="btnAnterior" onclick="cambiarPagina(-1)">
+                        <i class="bi bi-chevron-left"></i> Anterior
+                    </button>
+                    <span class="text-muted small fw-bold" id="infoPaginacion">Página 1</span>
+                    <button class="btn btn-sm btn-outline-success fw-bold" id="btnSiguiente" onclick="cambiarPagina(1)">
+                        Siguiente <i class="bi bi-chevron-right"></i>
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -124,6 +130,9 @@
 <script>
     const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyPTKRi6vDUxH9eIQNwh8XZCZAucg44Dr0TvywARJ64bUcYCVfmkPnk9nsSjf6g5DyxoA/exec';
     let ubicaciones = [];
+    let datosFiltrados = [];
+    let paginaActual = 1;
+    const filasPorPagina = 100;
     let miGrafico = null;
 
     async function cargarDatosDesdeGoogle() {
@@ -148,60 +157,76 @@
     }
 
     function actualizarTodo(data) {
-        calcularOcupabilidadMacro(data); // Solo para los 3 principales
-        actualizarAlertasOperativas(data); // Solo para los 2 de alertas
-        renderTable(data);
+        datosFiltrados = data;
+        paginaActual = 1;
+        calcularOcupabilidadMacro(data);
+        actualizarAlertasOperativas(data);
+        renderTable(); 
         renderGrafico(data);
         generarListaZonas(data);
     }
 
-    // FUNCIÓN 1: Ocupabilidad basada en HOJA STOCK (Todo lo que no es DISPONIBLE es OCUPADO)
     function calcularOcupabilidadMacro(data) {
         const total = data.length;
         const disponible = data.filter(u => u.estado === 'DISPONIBLE').length;
         const ocupadoTotal = total - disponible;
-
         const pOcupado = total > 0 ? ((ocupadoTotal / total) * 100).toFixed(1) : 0;
-        const pLibre = (100 - pOcupado).toFixed(1);
-
         document.getElementById('totalUbi').innerText = total;
         document.getElementById('valOcupado').innerText = ocupadoTotal;
         document.getElementById('percOcupado').innerText = `${pOcupado}% del total`;
         document.getElementById('valDisponible').innerText = disponible;
-        document.getElementById('percDisponible').innerText = `${pLibre}% del total`;
+        document.getElementById('percDisponible').innerText = `${(100 - pOcupado).toFixed(1)}% del total`;
     }
 
-    // FUNCIÓN 2: Alertas basadas en HOJA REPOSICIÓN (Sobrestock y Stock 0)
     function actualizarAlertasOperativas(data) {
-        const sobrestock = data.filter(u => u.estado === 'SOBRESTOCK').length;
-        const sinStock = data.filter(u => u.estado === 'SIN STOCK').length;
-
-        document.getElementById('valSobre').innerText = sobrestock;
-        document.getElementById('valSinStock').innerText = sinStock;
+        document.getElementById('valSobre').innerText = data.filter(u => u.estado === 'SOBRESTOCK').length;
+        document.getElementById('valSinStock').innerText = data.filter(u => u.estado === 'SIN STOCK').length;
     }
 
-    function renderTable(data) {
+    function renderTable() {
         const tbody = document.getElementById('tableBody');
-        tbody.innerHTML = '';
-        data.slice(0, 100).forEach(item => {
+        const inicio = (paginaActual - 1) * filasPorPagina;
+        const fin = inicio + filasPorPagina;
+        const totalPaginas = Math.ceil(datosFiltrados.length / filasPorPagina);
+        const dataPagina = datosFiltrados.slice(inicio, fin);
+        
+        tbody.innerHTML = dataPagina.map(item => {
             let badge = 'bg-disponible';
             if(item.estado === 'OCUPADO') badge = 'bg-ocupado';
             if(item.estado === 'SOBRESTOCK') badge = 'bg-sobrestock';
             if(item.estado === 'SIN STOCK') badge = 'bg-sin-stock';
-            tbody.innerHTML += `<tr><td><strong>${item.id}</strong></td><td>${item.zona}</td><td><small>${item.material || '-'}</small></td><td><span class="status-badge ${badge}">${item.estado}</span></td></tr>`;
-        });
+            return `<tr><td><strong>${item.id}</strong></td><td>${item.zona}</td><td><small>${item.material || '-'}</small></td><td><span class="status-badge ${badge}">${item.estado}</span></td></tr>`;
+        }).join('');
+
+        document.getElementById('infoPaginacion').innerText = `Página ${paginaActual} de ${totalPaginas || 1}`;
+        document.getElementById('btnAnterior').disabled = paginaActual === 1;
+        document.getElementById('btnSiguiente').disabled = paginaActual >= totalPaginas || totalPaginas === 0;
+    }
+
+    function cambiarPagina(direccion) {
+        paginaActual += direccion;
+        renderTable();
+        document.querySelector('.table-container').scrollTop = 0;
+    }
+
+    function filtrar(tipo) {
+        paginaActual = 1;
+        datosFiltrados = (tipo === 'TODOS') ? ubicaciones : ubicaciones.filter(u => u.estado === tipo);
+        renderTable();
     }
 
     function irADetalleYFiltrar(estado) {
         bootstrap.Tab.getOrCreateInstance(document.querySelector('#pills-detalle-tab')).show();
         setTimeout(() => {
+            paginaActual = 1;
             if (estado === 'OCUPADO') {
-                renderTable(ubicaciones.filter(u => u.estado !== 'DISPONIBLE'));
+                datosFiltrados = ubicaciones.filter(u => u.estado !== 'DISPONIBLE');
             } else if (estado === 'TODOS') {
-                renderTable(ubicaciones);
+                datosFiltrados = ubicaciones;
             } else {
-                renderTable(ubicaciones.filter(u => u.estado === estado));
+                datosFiltrados = ubicaciones.filter(u => u.estado === estado);
             }
+            renderTable();
         }, 150);
     }
 
@@ -220,17 +245,20 @@
     function generarListaZonas(data) {
         const container = document.getElementById('resumenZonas');
         const zonas = [...new Set(data.map(u => u.zona))].sort();
-        let html = '<div class="row row-cols-1 row-cols-md-2 g-2">';
-        zonas.forEach(z => {
+        container.innerHTML = '<div class="row row-cols-1 row-cols-md-2 g-2">' + zonas.map(z => {
             const totalZ = data.filter(u => u.zona === z).length;
             const dispZ = data.filter(u => u.zona === z && u.estado === 'DISPONIBLE').length;
             const pOcup = (((totalZ - dispZ) / totalZ) * 100).toFixed(0);
-            html += `<div class="col"><div class="p-2 border rounded bg-light small fw-bold">${z}<span class="float-end text-success">${dispZ} Libres</span><div class="progress" style="height:6px; margin-top:5px;"><div class="progress-bar bg-success" style="width:${pOcup}%"></div></div></div></div>`;
-        });
-        container.innerHTML = html + '</div>';
+            return `<div class="col"><div class="p-2 border rounded bg-light small fw-bold">${z}<span class="float-end text-success">${dispZ} Libres</span><div class="progress" style="height:6px; margin-top:5px;"><div class="progress-bar bg-success" style="width:${pOcup}%"></div></div></div></div>`;
+        }).join('') + '</div>';
     }
 
-    function filtrar(tipo) { renderTable(tipo === 'TODOS' ? ubicaciones : ubicaciones.filter(u => u.estado === tipo)); }
+    document.getElementById('searchInput').addEventListener('input', (e) => {
+        const term = e.target.value.toLowerCase();
+        paginaActual = 1;
+        datosFiltrados = ubicaciones.filter(u => (u.id + u.zona + u.material).toLowerCase().includes(term));
+        renderTable();
+    });
 
     window.onload = cargarDatosDesdeGoogle;
 </script>
