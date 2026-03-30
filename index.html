@@ -95,41 +95,42 @@
     let ubicaciones = [];
 
     async function cargarDatosDesdeGoogle() {
-    const loader = document.getElementById('loader');
-    const wrapper = document.getElementById('mainWrapper');
+        const loader = document.getElementById('loader');
+        const wrapper = document.getElementById('mainWrapper');
 
-    // 1. CARGA INSTANTÁNEA: ¿Hay algo en la memoria del navegador?
-    const cache = localStorage.getItem('cache_ubi');
-    if (cache) {
-        ubicaciones = JSON.parse(cache);
-        renderTable(ubicaciones);
-        loader.style.display = 'none';
-        wrapper.classList.remove('d-none');
-        console.log("Cargado desde caché para velocidad máxima");
+        // 1. CARGA INSTANTÁNEA DESDE CACHÉ
+        const cache = localStorage.getItem('cache_ubi');
+        if (cache) {
+            ubicaciones = JSON.parse(cache);
+            renderTable(ubicaciones);
+            llenarSelectorOrganizadores();
+            loader.style.display = 'none';
+            wrapper.classList.remove('d-none');
+        }
+
+        // 2. CARGA DE FONDO (FRESCA)
+        try {
+            const response = await fetch(SCRIPT_URL);
+            const freshData = await response.json();
+            
+            localStorage.setItem('cache_ubi', JSON.stringify(freshData));
+            ubicaciones = freshData;
+            
+            renderTable(ubicaciones);
+            llenarSelectorOrganizadores();
+            
+            loader.style.display = 'none';
+            wrapper.classList.remove('d-none');
+        } catch (error) {
+            console.error("Error:", error);
+            if(!cache) loader.innerText = "Error de conexión.";
+        }
     }
 
-    // 2. CARGA DE FONDO: Traemos la data fresca de Google
-    try {
-        const response = await fetch(SCRIPT_URL);
-        const freshData = await response.json();
-        
-        // Guardamos para la próxima vez
-        localStorage.setItem('cache_ubi', JSON.stringify(freshData));
-        
-        ubicaciones = freshData;
-        renderTable(ubicaciones);
-        
-        loader.style.display = 'none';
-        wrapper.classList.remove('d-none');
-    } catch (error) {
-        console.error("Error:", error);
-        if(!cache) loader.innerText = "Error de conexión.";
-    }
-}
-
-    // Llena el selector con las zonas únicas del Excel
     function llenarSelectorOrganizadores() {
         const select = document.getElementById('organizadorFilter');
+        // Limpiar opciones previas excepto la primera
+        select.innerHTML = '<option value="TODOS">Todos los Organizadores</option>';
         const zonasUnicas = [...new Set(ubicaciones.map(u => u.zona))].sort();
         
         zonasUnicas.forEach(zona => {
@@ -145,7 +146,11 @@
     function renderTable(data) {
         const tbody = document.getElementById('tableBody');
         tbody.innerHTML = '';
-        data.forEach((item) => {
+        
+        // OPTIMIZACIÓN: Solo renderizamos los primeros 100 para evitar que el navegador se cuelgue
+        const subset = data.slice(0, 100);
+
+        subset.forEach((item) => {
             const badgeClass = item.estado === 'DISPONIBLE' ? 'bg-disponible' : 'bg-ocupado';
             tbody.innerHTML += `
                 <tr>
@@ -155,12 +160,17 @@
                     <td><span class="status-badge ${badgeClass}">${item.estado}</span></td>
                 </tr>`;
         });
+
+        if (data.length > 100) {
+            tbody.innerHTML += `<tr><td colspan="4" class="text-center text-muted small py-3">Mostrando los primeros 100 resultados. Usa los filtros para refinar la búsqueda.</td></tr>`;
+        }
+
         actualizarKPIs(data);
     }
 
-    // Filtro por Estado (Botones)
     function filtrar(tipo) {
-        document.getElementById('organizadorFilter').value = 'TODOS'; // Reset selector
+        document.getElementById('organizadorFilter').value = 'TODOS';
+        document.getElementById('searchInput').value = '';
         if (tipo === 'TODOS') {
             renderTable(ubicaciones);
         } else {
@@ -169,9 +179,9 @@
         }
     }
 
-    // Filtro por Organizador (Selector)
     function filtrarOrganizador() {
         const zonaSeleccionada = document.getElementById('organizadorFilter').value;
+        document.getElementById('searchInput').value = '';
         if (zonaSeleccionada === 'TODOS') {
             renderTable(ubicaciones);
         } else {
@@ -180,13 +190,17 @@
         }
     }
 
-    // Buscador General
+    // BUSCADOR CON DEBOUNCE (Retraso de 300ms para mayor fluidez)
+    let searchTimer;
     document.getElementById('searchInput').addEventListener('input', (e) => {
-        const term = e.target.value.toLowerCase();
-        const filtered = ubicaciones.filter(u => 
-            (u.id + u.zona + u.material).toLowerCase().includes(term)
-        );
-        renderTable(filtered);
+        clearTimeout(searchTimer);
+        searchTimer = setTimeout(() => {
+            const term = e.target.value.toLowerCase();
+            const filtered = ubicaciones.filter(u => 
+                (u.id + u.zona + u.material).toLowerCase().includes(term)
+            );
+            renderTable(filtered);
+        }, 300);
     });
 
     function actualizarKPIs(data) {
