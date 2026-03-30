@@ -11,7 +11,6 @@
         body { background-color: #f0f2f5; font-family: 'Segoe UI', sans-serif; overflow-x: hidden; }
         .navbar { background-color: #1a5928; border-bottom: 4px solid #f9ca24; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
         
-        /* Indicador de carga discreto */
         #sync-loader { height: 3px; width: 100%; background: transparent; position: relative; overflow: hidden; }
         #sync-loader .progress-bar { width: 100%; height: 100%; background-color: #f9ca24; position: absolute; transform: translateX(-100%); transition: transform 0.2s; }
         .loading #sync-loader .progress-bar { animation: loading-anim 2s infinite linear; }
@@ -126,7 +125,6 @@
                 actualizarTodo(ubicaciones); 
             } catch(e) {}
         }
-
         try {
             const response = await fetch(SCRIPT_URL);
             const freshData = await response.json();
@@ -142,45 +140,39 @@
     }
 
     function actualizarTodo(data) {
-        actualizarKPIs(data);
+        // 1. Calculamos la ocupabilidad real (56/44)
+        calcularOcupabilidadMacro(data);
+        // 2. Mostramos las alertas específicas (Sobrestock, Sin Stock)
+        actualizarAlertasOperativas(data);
+        // 3. Renderizamos visuales
         renderTable(data);
         renderGrafico(data);
         generarListaZonas(data);
     }
 
-   function actualizarKPIs(data) {
+    // FUNCIÓN MACRO: Ocupado vs Libre
+    function calcularOcupabilidadMacro(data) {
         const total = data.length;
-        
-        // Filtramos por cada estado que manda el .gs corregido
-        const sobrestock = data.filter(u => u.estado === 'SOBRESTOCK').length;
-        const sinStock = data.filter(u => u.estado === 'SIN STOCK').length;
-        const ocupadoNormal = data.filter(u => u.estado === 'OCUPADO').length;
         const disponible = data.filter(u => u.estado === 'DISPONIBLE').length;
+        const ocupadoTotal = total - disponible;
 
-        // SUMA REAL: Ocupado es todo lo que NO está disponible
-        const ocupadoTotal = sobrestock + sinStock + ocupadoNormal;
-        
-        // Porcentajes
         const pOcupado = total > 0 ? ((ocupadoTotal / total) * 100).toFixed(1) : 0;
-        const pLibre = total > 0 ? ((disponible / total) * 100).toFixed(1) : 0;
+        const pLibre = (100 - pOcupado).toFixed(1);
 
-        // Inyectamos los valores a los IDs del Dashboard
-        document.getElementById('totalUbi').innerText = total; // 3772
-        
-        // Cuadro Ocupado (El macro)
+        document.getElementById('totalUbi').innerText = total;
         document.getElementById('valOcupado').innerText = ocupadoTotal;
         document.getElementById('percOcupado').innerText = `${pOcupado}% del almacén`;
-        
-        // Cuadros de Alerta (Los micros)
-        document.getElementById('valSobre').innerText = sobrestock;
-        document.getElementById('valSinStock').innerText = sinStock;
-        
-        // Cuadro Libre
         document.getElementById('valDisponible').innerText = disponible;
         document.getElementById('percDisponible').innerText = `${pLibre}% libre`;
-        
-        // Log para que tú mismo veas en consola si los números suman bien
-        console.log("Resumen CP:", {total, ocupadoTotal, disponible, suma: (ocupadoTotal + disponible)});
+    }
+
+    // FUNCIÓN MICRO: Desglose de alertas
+    function actualizarAlertasOperativas(data) {
+        const sobrestock = data.filter(u => u.estado === 'SOBRESTOCK').length;
+        const sinStock = data.filter(u => u.estado === 'SIN STOCK').length;
+
+        document.getElementById('valSobre').innerText = sobrestock;
+        document.getElementById('valSinStock').innerText = sinStock;
     }
 
     function renderTable(data) {
@@ -196,8 +188,7 @@
     }
 
     function irADetalleYFiltrar(estado) {
-        const triggerEl = document.querySelector('#pills-detalle-tab');
-        bootstrap.Tab.getOrCreateInstance(triggerEl).show();
+        bootstrap.Tab.getOrCreateInstance(document.querySelector('#pills-detalle-tab')).show();
         setTimeout(() => {
             if (estado === 'OCUPADO') {
                 renderTable(ubicaciones.filter(u => u.estado !== 'DISPONIBLE'));
