@@ -23,11 +23,9 @@
         .info-box { background: white; padding: 15px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); height: 350px; overflow-y: auto; }
         .status-badge { font-size: 0.7rem; padding: 4px 10px; border-radius: 20px; font-weight: bold; }
         
-        /* COLORES DE ESTADOS CORREGIDOS */
         .bg-disponible { background-color: #d1e7dd; color: #0f5132; }
         .bg-ocupado { background-color: #cfe2ff; color: #084298; border: 1px solid #b6d4fe; }
         .bg-sobrestock { background-color: #f8d7da; color: #842029; border: 1px solid #f5c2c7; }
-        .bg-sin-stock { background-color: #fff3cd; color: #856404; border: 1px solid #ffeeba; }
         
         #loader-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: white; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; }
     </style>
@@ -36,7 +34,7 @@
 
 <div id="loader-overlay">
     <div class="spinner-border text-success" role="status"></div>
-    <span class="mt-2 fw-bold text-success">Sincronizando con Cerro Prieto...</span>
+    <span class="mt-2 fw-bold text-success">Cargando Almacén CP...</span>
 </div>
 
 <nav class="navbar navbar-dark mb-3 px-3">
@@ -58,7 +56,7 @@
                         <div class="kpi-value" id="totalUbi">0</div>
                     </div>
                 </div>
-                <div class="col" onclick="irADetalleYFiltrar('OCUPADO_TOTAL')">
+                <div class="col" onclick="irADetalleYFiltrar('OCUPADOS_FULL')">
                     <div class="card kpi-card p-2 border-start border-primary border-4 shadow-sm">
                         <span class="kpi-title">Ocupado</span>
                         <div class="kpi-value text-primary" id="valOcupado">0</div>
@@ -69,12 +67,6 @@
                     <div class="card kpi-card p-2 border-start border-danger border-4 shadow-sm">
                         <span class="kpi-title">Sobrestock</span>
                         <div class="kpi-value text-danger" id="valSobre">0</div>
-                    </div>
-                </div>
-                <div class="col" onclick="irADetalleYFiltrar('SIN STOCK')">
-                    <div class="card kpi-card p-2 border-start border-warning border-4 shadow-sm">
-                        <span class="kpi-title">Stock 0</span>
-                        <div class="kpi-value text-warning" id="valSinStock">0</div>
                     </div>
                 </div>
                 <div class="col" onclick="irADetalleYFiltrar('DISPONIBLE')">
@@ -155,83 +147,32 @@
             overlay.style.display = 'none';
         } catch (e) { 
             console.error(e); 
-            overlay.innerHTML = '<div class="alert alert-danger m-3">Error de conexión con Google Sheets</div>';
+            overlay.innerHTML = '<div class="alert alert-danger m-3">Error de conexión</div>';
         }
     }
 
-  // Variable global para los datos
-let ubicaciones = [];
-let datosFiltrados = [];
-let paginaActual = 1;
-const filasPorPagina = 100;
-
-function actualizarTodo(data) {
-    ubicaciones = data;
-    datosFiltrados = data;
-    paginaActual = 1;
-
-    // FUNCIÓN ESPECÍFICA: CONTEO DE INDICADORES
-    const total = data.length;
-    const disponibles = data.filter(u => u.estado === 'DISPONIBLE').length;
-    const ocupadosTotal = total - disponibles; // Incluye Ocupados, Sobrestock y Sin Stock
-
-    const sobre = data.filter(u => u.estado === 'SOBRESTOCK').length;
-    const sinStock = data.filter(u => u.estado === 'SIN STOCK').length;
-
-    // Inyectar en HTML
-    document.getElementById('totalUbi').innerText = total;
-    document.getElementById('valDisponible').innerText = disponibles;
-    document.getElementById('valOcupado').innerText = ocupadosTotal;
-    document.getElementById('valSobre').innerText = sobre;
-    document.getElementById('valSinStock').innerText = sinStock;
-
-    // Porcentajes
-    document.getElementById('percOcupado').innerText = `${((ocupadosTotal/total)*100).toFixed(1)}%`;
-    document.getElementById('percDisponible').innerText = `${((disponibles/total)*100).toFixed(1)}%`;
-
-    renderTable();
-}
-
-// FUNCIÓN ESPECÍFICA: FILTRADO POR CLIC EN KPI
-function irADetalleYFiltrar(filtro) {
-    // Cambiar a la pestaña de Detalle
-    const tab = new bootstrap.Tab(document.getElementById('pills-detalle-tab'));
-    tab.show();
-
-    setTimeout(() => {
+    function actualizarTodo(data) {
+        ubicaciones = data;
+        datosFiltrados = data;
         paginaActual = 1;
-        if (filtro === 'TODOS') {
-            datosFiltrados = ubicaciones;
-        } else if (filtro === 'OCUPADOS_FULL') {
-            datosFiltrados = ubicaciones.filter(u => u.estado !== 'DISPONIBLE');
-        } else {
-            datosFiltrados = ubicaciones.filter(u => u.estado === filtro);
-        }
+
+        const total = data.length;
+        const disponibles = data.filter(u => u.estado === 'DISPONIBLE').length;
+        const ocupadosTotal = total - disponibles;
+        const sobrestock = data.filter(u => u.estado === 'SOBRESTOCK').length;
+
+        document.getElementById('totalUbi').innerText = total;
+        document.getElementById('valDisponible').innerText = disponibles;
+        document.getElementById('valOcupado').innerText = ocupadosTotal;
+        document.getElementById('valSobre').innerText = sobrestock;
+
+        document.getElementById('percOcupado').innerText = `${((ocupadosTotal/total)*100).toFixed(1)}%`;
+        document.getElementById('percDisponible').innerText = `${((disponibles/total)*100).toFixed(1)}%`;
+
         renderTable();
-    }, 150);
-}
-
-function renderTable() {
-    const tbody = document.getElementById('tableBody');
-    const inicio = (paginaActual - 1) * filasPorPagina;
-    const fin = inicio + filasPorPagina;
-    const dataPagina = datosFiltrados.slice(inicio, fin);
-
-    tbody.innerHTML = dataPagina.map(u => {
-        let badge = u.estado === 'DISPONIBLE' ? 'bg-success' : 'bg-primary';
-        if(u.estado === 'SOBRESTOCK') badge = 'bg-danger';
-        if(u.estado === 'SIN STOCK') badge = 'bg-warning';
-        
-        return `<tr>
-            <td>${u.id}</td>
-            <td>${u.zona}</td>
-            <td>${u.material}</td>
-            <td><span class="badge ${badge}">${u.estado}</span></td>
-        </tr>`;
-    }).join('');
-    
-    document.getElementById('infoPaginacion').innerText = `Página ${paginaActual}`;
-}
+        renderGrafico(data);
+        generarListaZonas(data);
+    }
 
     function renderTable() {
         const tbody = document.getElementById('tableBody');
@@ -244,7 +185,7 @@ function renderTable() {
             let badge = 'bg-disponible';
             if(item.estado === 'OCUPADO') badge = 'bg-ocupado';
             if(item.estado === 'SOBRESTOCK') badge = 'bg-sobrestock';
-            if(item.estado === 'SIN STOCK') badge = 'bg-sin-stock';
+            
             return `<tr><td><strong>${item.id}</strong></td><td>${item.zona}</td><td><small>${item.material || '-'}</small></td><td><span class="status-badge ${badge}">${item.estado}</span></td></tr>`;
         }).join('');
 
@@ -265,16 +206,17 @@ function renderTable() {
         renderTable();
     }
 
-    function irADetalleYFiltrar(estado) {
-        bootstrap.Tab.getOrCreateInstance(document.querySelector('#pills-detalle-tab')).show();
+    function irADetalleYFiltrar(filtro) {
+        const tab = new bootstrap.Tab(document.getElementById('pills-detalle-tab'));
+        tab.show();
         setTimeout(() => {
             paginaActual = 1;
-            if (estado === 'OCUPADO_TOTAL') {
-                datosFiltrados = ubicaciones.filter(u => u.estado !== 'DISPONIBLE');
-            } else if (estado === 'TODOS') {
+            if (filtro === 'TODOS') {
                 datosFiltrados = ubicaciones;
+            } else if (filtro === 'OCUPADOS_FULL') {
+                datosFiltrados = ubicaciones.filter(u => u.estado !== 'DISPONIBLE');
             } else {
-                datosFiltrados = ubicaciones.filter(u => u.estado === estado);
+                datosFiltrados = ubicaciones.filter(u => u.estado === filtro);
             }
             renderTable();
         }, 150);
@@ -283,7 +225,6 @@ function renderTable() {
     function renderGrafico(data) {
         const ctx = document.getElementById('ctxGrafico');
         const zonas = [...new Set(data.map(u => u.zona))].sort();
-        // El gráfico suma todo lo que NO es disponible por zona
         const dataset = zonas.map(z => data.filter(u => u.zona === z && u.estado !== 'DISPONIBLE').length);
         if (miGrafico) miGrafico.destroy();
         miGrafico = new Chart(ctx, {
@@ -312,15 +253,6 @@ function renderTable() {
     });
 
     window.onload = cargarDatosDesdeGoogle;
-    function actualizarAlertasOperativas(data) {
-    // Filtramos la data que ya viene etiquetada desde el .gs
-    const totalSobrestock = data.filter(u => u.estado === 'SOBRESTOCK').length;
-    const totalSinStock = data.filter(u => u.estado === 'SIN STOCK').length;
-
-    // Actualizamos los números en los cuadritos del Dashboard
-    document.getElementById('valSobre').innerText = totalSobrestock;
-    document.getElementById('valSinStock').innerText = totalSinStock;
-}
 </script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
