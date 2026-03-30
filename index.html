@@ -10,7 +10,8 @@
     <style>
         body { background-color: #f0f2f5; font-family: 'Segoe UI', sans-serif; overflow-x: hidden; }
         .navbar { background-color: #1a5928; border-bottom: 4px solid #f9ca24; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        .kpi-card { border: none; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); transition: transform 0.2s; position: relative; overflow: hidden; height: 100%; }
+        .kpi-card { border: none; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); transition: transform 0.2s; position: relative; overflow: hidden; height: 100%; cursor: pointer; }
+        .kpi-card:hover { transform: scale(1.03); }
         .kpi-title { font-size: 0.65rem; font-weight: 700; text-transform: uppercase; color: #6c757d; }
         .kpi-value { font-size: 1.5rem; font-weight: 800; margin: 2px 0; }
         .nav-pills .nav-link.active { background-color: #1a5928; color: white; }
@@ -44,45 +45,43 @@
 
 <div class="container-fluid px-3">
     <ul class="nav nav-pills mb-3 justify-content-center" id="pills-tab" role="tablist">
-        <li class="nav-item" role="presentation">
-            <button class="nav-link active" id="pills-resumen-tab" data-bs-toggle="pill" data-bs-target="#view-resumen" type="button" role="tab">RESUMEN</button>
-        </li>
-        <li class="nav-item" role="presentation">
-            <button class="nav-link" id="pills-detalle-tab" data-bs-toggle="pill" data-bs-target="#view-detalle" type="button" role="tab">DETALLE</button>
-        </li>
+        <li class="nav-item"><button class="nav-link active" id="pills-resumen-tab" data-bs-toggle="pill" data-bs-target="#view-resumen" type="button">RESUMEN</button></li>
+        <li class="nav-item"><button class="nav-link" id="pills-detalle-tab" data-bs-toggle="pill" data-bs-target="#view-detalle" type="button">DETALLE</button></li>
     </ul>
 
     <div class="tab-content" id="pills-tabContent">
         <div class="tab-pane fade show active" id="view-resumen" role="tabpanel">
             <div class="row g-2 mb-3 text-center">
-                <div class="col">
-                    <div class="card kpi-card p-2 border-start border-dark border-4">
+                <div class="col" onclick="irADetalleYFiltrar('TODOS')">
+                    <div class="card kpi-card p-2 border-start border-dark border-4 shadow-sm">
                         <span class="kpi-title">Capacidad</span>
                         <div class="kpi-value" id="totalUbi">0</div>
                     </div>
                 </div>
-                <div class="col">
-                    <div class="card kpi-card p-2 border-start border-primary border-4">
+                <div class="col" onclick="irADetalleYFiltrar('OCUPADO')">
+                    <div class="card kpi-card p-2 border-start border-primary border-4 shadow-sm">
                         <span class="kpi-title">Ocupado</span>
                         <div class="kpi-value text-primary" id="valOcupado">0</div>
+                        <span class="fw-bold text-primary" id="percOcupado" style="font-size: 0.7rem;">0%</span>
                     </div>
                 </div>
-                <div class="col">
-                    <div class="card kpi-card p-2 border-start border-danger border-4">
+                <div class="col" onclick="irADetalleYFiltrar('SOBRESTOCK')">
+                    <div class="card kpi-card p-2 border-start border-danger border-4 shadow-sm">
                         <span class="kpi-title">Sobrestock</span>
                         <div class="kpi-value text-danger" id="valSobre">0</div>
                     </div>
                 </div>
-                <div class="col">
-                    <div class="card kpi-card p-2 border-start border-warning border-4">
+                <div class="col" onclick="irADetalleYFiltrar('SIN STOCK')">
+                    <div class="card kpi-card p-2 border-start border-warning border-4 shadow-sm">
                         <span class="kpi-title">Stock 0</span>
                         <div class="kpi-value text-warning" id="valSinStock">0</div>
                     </div>
                 </div>
-                <div class="col">
-                    <div class="card kpi-card p-2 border-start border-success border-4">
+                <div class="col" onclick="irADetalleYFiltrar('DISPONIBLE')">
+                    <div class="card kpi-card p-2 border-start border-success border-4 shadow-sm">
                         <span class="kpi-title">Libre</span>
                         <div class="kpi-value text-success" id="valDisponible">0</div>
+                        <span class="fw-bold text-success" id="percDisponible" style="font-size: 0.7rem;">0%</span>
                     </div>
                 </div>
             </div>
@@ -105,23 +104,15 @@
 
         <div class="tab-pane fade" id="view-detalle" role="tabpanel">
             <div class="card p-3 border-0 shadow-sm">
-                <div class="row g-2 mb-3 align-items-center">
-                    <div class="col-md-4"><input type="text" id="searchInput" class="form-control" placeholder="Buscar código o material..."></div>
-                    <div class="col-md-4">
-                        <select id="organizadorFilter" class="form-select" onchange="filtrarOrganizador()">
-                            <option value="TODOS">Todas las Zonas</option>
-                        </select>
-                    </div>
+                <div class="row g-2 mb-3">
+                    <div class="col-md-4"><input type="text" id="searchInput" class="form-control" placeholder="Buscar material o ID..."></div>
                     <div class="col-md-4 d-flex gap-1">
                         <button class="btn btn-dark flex-grow-1" onclick="filtrar('TODOS')">TODO</button>
-                        <button class="btn btn-primary" onclick="guardarEnGoogle()">+</button>
                     </div>
                 </div>
                 <div class="table-container">
                     <table class="table table-sm table-hover align-middle mb-0">
-                        <thead class="table-light">
-                            <tr><th>ID</th><th>ZONA</th><th>MATERIAL</th><th>ESTADO</th></tr>
-                        </thead>
+                        <thead class="table-light"><tr><th>ID</th><th>ZONA</th><th>MATERIAL</th><th>ESTADO</th></tr></thead>
                         <tbody id="tableBody"></tbody>
                     </table>
                 </div>
@@ -152,114 +143,97 @@
             overlay.style.display = 'none';
         } catch (e) { 
             console.error(e); 
-            overlay.innerHTML = '<div class="alert alert-danger m-3">Falla en la red de Cerro Prieto</div>';
+            overlay.innerHTML = '<div class="alert alert-danger m-3">Error de conexión con Google Sheets</div>';
         }
     }
 
     function actualizarTodo(data) {
+        calcularOcupabilidadMacro(data); // Solo para los 3 principales
+        actualizarAlertasOperativas(data); // Solo para los 2 de alertas
         renderTable(data);
-        actualizarKPIs(data);
         renderGrafico(data);
         generarListaZonas(data);
-        llenarSelector(data);
+    }
+
+    // FUNCIÓN 1: Ocupabilidad basada en HOJA STOCK (Todo lo que no es DISPONIBLE es OCUPADO)
+    function calcularOcupabilidadMacro(data) {
+        const total = data.length;
+        const disponible = data.filter(u => u.estado === 'DISPONIBLE').length;
+        const ocupadoTotal = total - disponible;
+
+        const pOcupado = total > 0 ? ((ocupadoTotal / total) * 100).toFixed(1) : 0;
+        const pLibre = (100 - pOcupado).toFixed(1);
+
+        document.getElementById('totalUbi').innerText = total;
+        document.getElementById('valOcupado').innerText = ocupadoTotal;
+        document.getElementById('percOcupado').innerText = `${pOcupado}% del total`;
+        document.getElementById('valDisponible').innerText = disponible;
+        document.getElementById('percDisponible').innerText = `${pLibre}% del total`;
+    }
+
+    // FUNCIÓN 2: Alertas basadas en HOJA REPOSICIÓN (Sobrestock y Stock 0)
+    function actualizarAlertasOperativas(data) {
+        const sobrestock = data.filter(u => u.estado === 'SOBRESTOCK').length;
+        const sinStock = data.filter(u => u.estado === 'SIN STOCK').length;
+
+        document.getElementById('valSobre').innerText = sobrestock;
+        document.getElementById('valSinStock').innerText = sinStock;
     }
 
     function renderTable(data) {
         const tbody = document.getElementById('tableBody');
-        if (!tbody) return;
         tbody.innerHTML = '';
         data.slice(0, 100).forEach(item => {
             let badge = 'bg-disponible';
-            if (item.estado === 'OCUPADO') badge = 'bg-ocupado';
-            if (item.estado === 'SOBRESTOCK') badge = 'bg-sobrestock';
-            if (item.estado === 'SIN STOCK') badge = 'bg-sin-stock';
-
+            if(item.estado === 'OCUPADO') badge = 'bg-ocupado';
+            if(item.estado === 'SOBRESTOCK') badge = 'bg-sobrestock';
+            if(item.estado === 'SIN STOCK') badge = 'bg-sin-stock';
             tbody.innerHTML += `<tr><td><strong>${item.id}</strong></td><td>${item.zona}</td><td><small>${item.material || '-'}</small></td><td><span class="status-badge ${badge}">${item.estado}</span></td></tr>`;
         });
     }
 
-    function actualizarKPIs(data) {
-        const total = data.length;
-        const ocupadas = data.filter(u => u.estado === 'OCUPADO').length;
-        const sobrestock = data.filter(u => u.estado === 'SOBRESTOCK').length;
-        const sinStock = data.filter(u => u.estado === 'SIN STOCK').length;
-        const disp = data.filter(u => u.estado === 'DISPONIBLE').length;
-
-        document.getElementById('totalUbi').innerText = total;
-        document.getElementById('valOcupado').innerText = ocupadas;
-        document.getElementById('valSobre').innerText = sobrestock;
-        document.getElementById('valSinStock').innerText = sinStock;
-        document.getElementById('valDisponible').innerText = disp;
+    function irADetalleYFiltrar(estado) {
+        bootstrap.Tab.getOrCreateInstance(document.querySelector('#pills-detalle-tab')).show();
+        setTimeout(() => {
+            if (estado === 'OCUPADO') {
+                renderTable(ubicaciones.filter(u => u.estado !== 'DISPONIBLE'));
+            } else if (estado === 'TODOS') {
+                renderTable(ubicaciones);
+            } else {
+                renderTable(ubicaciones.filter(u => u.estado === estado));
+            }
+        }, 150);
     }
 
     function renderGrafico(data) {
         const ctx = document.getElementById('ctxGrafico');
-        if (!ctx) return;
         const zonas = [...new Set(data.map(u => u.zona))].sort();
-        // El gráfico suma todo lo que no esté disponible por zona
         const dataset = zonas.map(z => data.filter(u => u.zona === z && u.estado !== 'DISPONIBLE').length);
         if (miGrafico) miGrafico.destroy();
         miGrafico = new Chart(ctx, {
             type: 'doughnut', 
-            data: { labels: zonas, datasets: [{ data: dataset, backgroundColor: ['#1a5928', '#f9ca24', '#eb4d4b', '#6ab04c', '#7ed6df', '#22a6b3'] }] },
-            options: { maintainAspectRatio: false, cutout: '65%', plugins: { legend: { display: false } } }
+            data: { labels: zonas, datasets: [{ data: dataset, backgroundColor: ['#1a5928', '#f9ca24', '#eb4d4b', '#6ab04c', '#7ed6df'] }] },
+            options: { maintainAspectRatio: false, cutout: '70%', plugins: { legend: { display: false } } }
         });
     }
 
     function generarListaZonas(data) {
         const container = document.getElementById('resumenZonas');
-        if (!container) return;
         const zonas = [...new Set(data.map(u => u.zona))].sort();
         let html = '<div class="row row-cols-1 row-cols-md-2 g-2">';
         zonas.forEach(z => {
             const totalZ = data.filter(u => u.zona === z).length;
             const dispZ = data.filter(u => u.zona === z && u.estado === 'DISPONIBLE').length;
-            const pOcup = totalZ > 0 ? (((totalZ - dispZ) / totalZ) * 100).toFixed(0) : 0;
-            
-            html += `<div class="col"><div class="p-2 border rounded bg-light small"><div class="d-flex justify-content-between fw-bold mb-1"><span>${z}</span><span class="text-success">${dispZ} Libres</span></div><div class="progress" style="height: 6px;"><div class="progress-bar bg-success" style="width: ${pOcup}%"></div></div></div></div>`;
+            const pOcup = (((totalZ - dispZ) / totalZ) * 100).toFixed(0);
+            html += `<div class="col"><div class="p-2 border rounded bg-light small fw-bold">${z}<span class="float-end text-success">${dispZ} Libres</span><div class="progress" style="height:6px; margin-top:5px;"><div class="progress-bar bg-success" style="width:${pOcup}%"></div></div></div></div>`;
         });
         container.innerHTML = html + '</div>';
     }
 
-    function llenarSelector(data) {
-        const s = document.getElementById('organizadorFilter');
-        if(!s || s.options.length > 1) return;
-        const zs = [...new Set(data.map(u => u.zona))].sort();
-        zs.forEach(z => { if(z) s.add(new Option(z,z)); });
-    }
-
-    function filtrar(tipo) { 
-        if (tipo === 'TODOS') {
-            renderTable(ubicaciones);
-        } else {
-            renderTable(ubicaciones.filter(u => u.estado === tipo)); 
-        }
-    }
-    
-    function filtrarOrganizador() { 
-        const v = document.getElementById('organizadorFilter').value; 
-        renderTable(v === 'TODOS' ? ubicaciones : ubicaciones.filter(u => u.zona === v)); 
-    }
-
-    let timer;
-    document.getElementById('searchInput').addEventListener('input', (e) => {
-        clearTimeout(timer);
-        timer = setTimeout(() => {
-            const term = e.target.value.toLowerCase();
-            renderTable(ubicaciones.filter(u => (u.id + u.zona + u.material).toLowerCase().includes(term)));
-        }, 300);
-    });
-
-    async function guardarEnGoogle() {
-        const id = prompt("ID:"); const zona = prompt("Zona:");
-        if(!id || !zona) return;
-        await fetch(SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({id, zona}) });
-        location.reload();
-    }
+    function filtrar(tipo) { renderTable(tipo === 'TODOS' ? ubicaciones : ubicaciones.filter(u => u.estado === tipo)); }
 
     window.onload = cargarDatosDesdeGoogle;
 </script>
-
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
