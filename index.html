@@ -22,10 +22,13 @@
         .chart-wrapper { flex-grow: 1; position: relative; max-height: 250px; } 
         .info-box { background: white; padding: 15px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); height: 350px; overflow-y: auto; }
         .status-badge { font-size: 0.7rem; padding: 4px 10px; border-radius: 20px; font-weight: bold; }
+        
+        /* COLORES DE ESTADOS CORREGIDOS */
         .bg-disponible { background-color: #d1e7dd; color: #0f5132; }
         .bg-ocupado { background-color: #cfe2ff; color: #084298; border: 1px solid #b6d4fe; }
         .bg-sobrestock { background-color: #f8d7da; color: #842029; border: 1px solid #f5c2c7; }
         .bg-sin-stock { background-color: #fff3cd; color: #856404; border: 1px solid #ffeeba; }
+        
         #loader-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: white; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; }
     </style>
 </head>
@@ -55,7 +58,7 @@
                         <div class="kpi-value" id="totalUbi">0</div>
                     </div>
                 </div>
-                <div class="col" onclick="irADetalleYFiltrar('OCUPADO')">
+                <div class="col" onclick="irADetalleYFiltrar('OCUPADO_TOTAL')">
                     <div class="card kpi-card p-2 border-start border-primary border-4 shadow-sm">
                         <span class="kpi-title">Ocupado</span>
                         <div class="kpi-value text-primary" id="valOcupado">0</div>
@@ -159,28 +162,30 @@
     function actualizarTodo(data) {
         datosFiltrados = data;
         paginaActual = 1;
-        calcularOcupabilidadMacro(data);
-        actualizarAlertasOperativas(data);
+        
+        // --- CIRUGÍA DE NÚMEROS REALES ---
+        const total = data.length; // 3772
+        const disponibles = data.filter(u => u.estado === 'DISPONIBLE').length; // 1479
+        const ocupadosTotal = total - disponibles; // 2293
+
+        const sobre = data.filter(u => u.estado === 'SOBRESTOCK').length;
+        const sinStock = data.filter(u => u.estado === 'SIN STOCK').length;
+
+        // Inyectamos a los KPIs
+        document.getElementById('totalUbi').innerText = total;
+        document.getElementById('valOcupado').innerText = ocupadosTotal;
+        document.getElementById('valDisponible').innerText = disponibles;
+        document.getElementById('valSobre').innerText = sobre;
+        document.getElementById('valSinStock').innerText = sinStock;
+
+        // Porcentajes
+        const pOcupado = total > 0 ? ((ocupadosTotal / total) * 100).toFixed(1) : 0;
+        document.getElementById('percOcupado').innerText = `${pOcupado}% del total`;
+        document.getElementById('percDisponible').innerText = `${(100 - pOcupado).toFixed(1)}% del total`;
+
         renderTable(); 
         renderGrafico(data);
         generarListaZonas(data);
-    }
-
-    function calcularOcupabilidadMacro(data) {
-        const total = data.length;
-        const disponible = data.filter(u => u.estado === 'DISPONIBLE').length;
-        const ocupadoTotal = total - disponible;
-        const pOcupado = total > 0 ? ((ocupadoTotal / total) * 100).toFixed(1) : 0;
-        document.getElementById('totalUbi').innerText = total;
-        document.getElementById('valOcupado').innerText = ocupadoTotal;
-        document.getElementById('percOcupado').innerText = `${pOcupado}% del total`;
-        document.getElementById('valDisponible').innerText = disponible;
-        document.getElementById('percDisponible').innerText = `${(100 - pOcupado).toFixed(1)}% del total`;
-    }
-
-    function actualizarAlertasOperativas(data) {
-        document.getElementById('valSobre').innerText = data.filter(u => u.estado === 'SOBRESTOCK').length;
-        document.getElementById('valSinStock').innerText = data.filter(u => u.estado === 'SIN STOCK').length;
     }
 
     function renderTable() {
@@ -219,7 +224,7 @@
         bootstrap.Tab.getOrCreateInstance(document.querySelector('#pills-detalle-tab')).show();
         setTimeout(() => {
             paginaActual = 1;
-            if (estado === 'OCUPADO') {
+            if (estado === 'OCUPADO_TOTAL') {
                 datosFiltrados = ubicaciones.filter(u => u.estado !== 'DISPONIBLE');
             } else if (estado === 'TODOS') {
                 datosFiltrados = ubicaciones;
@@ -233,6 +238,7 @@
     function renderGrafico(data) {
         const ctx = document.getElementById('ctxGrafico');
         const zonas = [...new Set(data.map(u => u.zona))].sort();
+        // El gráfico suma todo lo que NO es disponible por zona
         const dataset = zonas.map(z => data.filter(u => u.zona === z && u.estado !== 'DISPONIBLE').length);
         if (miGrafico) miGrafico.destroy();
         miGrafico = new Chart(ctx, {
