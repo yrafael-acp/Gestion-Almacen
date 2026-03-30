@@ -3,156 +3,166 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestión de Ubicaciones - MVP</title>
+    <title>Gestión de Ubicaciones - Agrícola Cerro Prieto</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         body { background-color: #f4f7f6; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        .navbar { background-color: #1a5928; } /* Verde tipo Agrícola */
+        .navbar { background-color: #1a5928; border-bottom: 4px solid #f9ca24; } 
         .card { border: none; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
-        .status-badge { font-size: 0.8rem; padding: 5px 10px; border-radius: 20px; }
+        .status-badge { font-size: 0.8rem; padding: 5px 10px; border-radius: 20px; text-transform: uppercase; font-weight: bold; }
         .bg-disponible { background-color: #d1e7dd; color: #0f5132; }
         .bg-ocupado { background-color: #f8d7da; color: #842029; }
+        #loader { display: block; text-align: center; padding: 20px; }
     </style>
 </head>
 <body>
 
 <nav class="navbar navbar-dark px-3 mb-4">
-    <span class="navbar-brand mb-0 h1">Sistema de Gestión de Ubicaciones v1.0</span>
+    <span class="navbar-brand mb-0 h1">📍 Gestión de Ubicaciones v1.0</span>
 </nav>
 
 <div class="container">
     <div class="row mb-4">
-        <div class="col-md-4">
+        <div class="col-md-4 mb-2">
             <div class="card text-center p-3">
-                <h6>Total Ubicaciones</h6>
-                <h2 id="totalUbi">0</h2>
+                <h6 class="text-muted">Total Ubicaciones</h6>
+                <h2 id="totalUbi">...</h2>
             </div>
         </div>
-        <div class="col-md-4">
+        <div class="col-md-4 mb-2">
             <div class="card text-center p-3">
-                <h6>Ocupadas</h6>
-                <h2 class="text-danger" id="totalOcupadas">0</h2>
+                <h6 class="text-muted">Ocupadas</h6>
+                <h2 class="text-danger" id="totalOcupadas">...</h2>
             </div>
         </div>
-        <div class="col-md-4">
+        <div class="col-md-4 mb-2">
             <div class="card text-center p-3">
-                <h6>Disponibilidad</h6>
-                <h2 class="text-success" id="percDisp">0%</h2>
+                <h6 class="text-muted">Disponibilidad</h6>
+                <h2 class="text-success" id="percDisp">...%</h2>
             </div>
         </div>
     </div>
 
     <div class="card p-4">
-        <div class="d-flex justify-content-between mb-3">
-            <input type="text" id="searchInput" class="form-control w-50" placeholder="Buscar por código, zona o material...">
-            <button class="btn btn-success" onclick="nuevoRegistro()">+ Nuevo Registro</button>
+        <div class="d-flex flex-column flex-md-row justify-content-between mb-3 gap-2">
+            <input type="text" id="searchInput" class="form-control w-100 w-md-50" placeholder="Buscar por código, zona o material...">
+            <button class="btn btn-success" onclick="guardarEnGoogle()">+ Nuevo Registro</button>
         </div>
         
+        <div id="loader">Cargando datos desde la nube...</div>
+
         <div class="table-responsive">
-            <table class="table table-hover">
+            <table class="table table-hover d-none" id="mainTable">
                 <thead class="table-light">
                     <tr>
                         <th>Código</th>
                         <th>Zona/Fila</th>
                         <th>Material</th>
                         <th>Estado</th>
-                        <th>Acción</th>
                     </tr>
                 </thead>
-                <tbody id="tableBody">
-                    </tbody>
+                <tbody id="tableBody"></tbody>
             </table>
         </div>
     </div>
 </div>
 
 <script>
+    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyPTKRi6vDUxH9eIQNwh8XZCZAucg44Dr0TvywARJ64bUcYCVfmkPnk9nsSjf6g5DyxoA/exec';
+    let ubicaciones = [];
+
+    // 1. Carga de datos real desde Google
     async function cargarDatosDesdeGoogle() {
-    const response = await fetch(SCRIPT_URL);
-    const datosReales = await response.json();
-    
-    // Reemplazamos los datos de prueba por los de tu Google Sheet
-    ubicaciones = datosReales; 
-    renderTable(ubicaciones);
-}
+        try {
+            const response = await fetch(SCRIPT_URL);
+            ubicaciones = await response.json();
+            
+            document.getElementById('loader').style.display = 'none';
+            document.getElementById('mainTable').classList.remove('d-none');
+            
+            renderTable(ubicaciones);
+        } catch (error) {
+            console.error("Error:", error);
+            document.getElementById('loader').innerText = "Error al conectar con la base de datos.";
+        }
+    }
 
-// Llama a la función apenas abra la página
-window.onload = cargarDatosDesdeGoogle;
-
-    // 2. Función para renderizar la tabla (Equivalente a tus macros de filtrado)
+    // 2. Renderizar tabla con lógica de colores
     function renderTable(data) {
         const tbody = document.getElementById('tableBody');
         tbody.innerHTML = '';
         
-        data.forEach((item, index) => {
-            const badgeClass = item.estado === 'Disponible' ? 'bg-disponible' : 'bg-ocupado';
+        data.forEach((item) => {
+            const estadoFinal = item.estado.toUpperCase();
+            const badgeClass = estadoFinal === 'DISPONIBLE' ? 'bg-disponible' : 'bg-ocupado';
+            
             tbody.innerHTML += `
                 <tr>
                     <td><strong>${item.id}</strong></td>
                     <td>${item.zona}</td>
-                    <td>${item.material}</td>
-                    <td><span class="status-badge ${badgeClass}">${item.estado}</span></td>
-                    <td>
-                        <button class="btn btn-sm btn-outline-primary" onclick="editar(${index})">Editar</button>
-                    </td>
+                    <td>${item.material || '---'}</td>
+                    <td><span class="status-badge ${badgeClass}">${estadoFinal}</span></td>
                 </tr>
             `;
         });
-        actualizarKPIs();
+        actualizarKPIs(data);
     }
 
-    // 3. Buscador en tiempo real (Slicers dinámicos)
+    // 3. Buscador en tiempo real
     document.getElementById('searchInput').addEventListener('keyup', (e) => {
         const term = e.target.value.toLowerCase();
         const filtered = ubicaciones.filter(u => 
             u.id.toLowerCase().includes(term) || 
             u.zona.toLowerCase().includes(term) ||
-            u.material.toLowerCase().includes(term)
+            (u.material && u.material.toLowerCase().includes(term))
         );
         renderTable(filtered);
     });
 
-    // 4. Lógica de KPIs para Gerencia
-    function actualizarKPIs() {
-        const total = ubicaciones.length;
-        const ocupadas = ubicaciones.filter(u => u.estado === 'Ocupado').length;
-        const dispPerc = ((total - ocupadas) / total * 100).toFixed(1);
+    // 4. KPIs Dinámicos
+    function actualizarKPIs(data) {
+        const total = data.length;
+        const ocupadas = data.filter(u => u.estado.toUpperCase() === 'OCUPADO').length;
+        const dispPerc = total > 0 ? ((total - ocupadas) / total * 100).toFixed(1) : 0;
 
         document.getElementById('totalUbi').innerText = total;
         document.getElementById('totalOcupadas').innerText = ocupadas;
         document.getElementById('percDisp').innerText = dispPerc + '%';
     }
 
-    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyPTKRi6vDUxH9eIQNwh8XZCZAucg44Dr0TvywARJ64bUcYCVfmkPnk9nsSjf6g5DyxoA/exec';
+    // 5. Inyectar nuevo registro a Google Sheets
+    async function guardarEnGoogle() {
+        const id = prompt("Ingrese Código de Ubicación:");
+        const zona = prompt("Ingrese Zona/Fila:");
+        const material = prompt("Ingrese Material:");
 
-async function guardarEnGoogle() {
-    const nuevaUbi = {
-        id: prompt("Ingrese Código de Ubicación:"),
-        zona: prompt("Ingrese Zona/Fila:"),
-        material: prompt("Ingrese Material:"),
-        estado: "Ocupado"
-    };
-
-    if(!nuevaUbi.id) return; // Cancelar si está vacío
-
-    try {
-        const response = await fetch(SCRIPT_URL, {
-            method: 'POST',
-            body: JSON.stringify(nuevaUbi)
-        });
-        
-        if (response.ok) {
-            alert("¡Dato guardado en Google Sheets, jefe!");
-            location.reload(); // Recarga para ver el nuevo dato
+        if(!id || !zona) {
+            alert("El código y la zona son obligatorios.");
+            return;
         }
-    } catch (error) {
-        console.error("Error:", error);
-        alert("Falló el envío, revisa la conexión.");
-    }
-}
 
-    // Carga inicial
-    renderTable(ubicaciones);
+        const nuevaUbi = { id, zona, material, estado: "OCUPADO" };
+
+        try {
+            // Usamos mode: 'no-cors' para Apps Script
+            await fetch(SCRIPT_URL, {
+                method: 'POST',
+                mode: 'no-cors',
+                cache: 'no-cache',
+                body: JSON.stringify(nuevaUbi)
+            });
+            
+            alert("¡Registro enviado! La tabla se actualizará en unos segundos.");
+            setTimeout(() => location.reload(), 1500); 
+
+        } catch (error) {
+            alert("Error al guardar. Revisa la consola.");
+            console.error(error);
+        }
+    }
+
+    // Ejecutar carga al abrir
+    window.onload = cargarDatosDesdeGoogle;
 </script>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
