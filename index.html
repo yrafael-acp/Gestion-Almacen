@@ -34,7 +34,7 @@
 
 <div id="loader-overlay">
     <div class="spinner-border text-success" role="status"></div>
-    <span class="mt-2 fw-bold text-success">Cargando Almacén CP...</span>
+    <span class="mt-2 fw-bold text-success">Sincronizando con Cerro Prieto...</span>
 </div>
 
 <nav class="navbar navbar-dark mb-3 px-3">
@@ -134,9 +134,11 @@
         const overlay = document.getElementById('loader-overlay');
         const cache = localStorage.getItem('cache_ubi');
         if (cache) { 
-            ubicaciones = JSON.parse(cache); 
-            actualizarTodo(ubicaciones); 
-            overlay.style.display = 'none'; 
+            try {
+                ubicaciones = JSON.parse(cache); 
+                actualizarTodo(ubicaciones); 
+                overlay.style.display = 'none'; 
+            } catch(e) { localStorage.removeItem('cache_ubi'); }
         }
         try {
             const response = await fetch(SCRIPT_URL);
@@ -147,7 +149,7 @@
             overlay.style.display = 'none';
         } catch (e) { 
             console.error(e); 
-            overlay.innerHTML = '<div class="alert alert-danger m-3">Error de conexión</div>';
+            overlay.innerHTML = '<div class="alert alert-danger m-3">Error de conexión con Cerro Prieto</div>';
         }
     }
 
@@ -166,8 +168,8 @@
         document.getElementById('valOcupado').innerText = ocupadosTotal;
         document.getElementById('valSobre').innerText = sobrestock;
 
-        document.getElementById('percOcupado').innerText = `${((ocupadosTotal/total)*100).toFixed(1)}%`;
-        document.getElementById('percDisponible').innerText = `${((disponibles/total)*100).toFixed(1)}%`;
+        document.getElementById('percOcupado').innerText = total > 0 ? `${((ocupadosTotal/total)*100).toFixed(1)}%` : '0%';
+        document.getElementById('percDisponible').innerText = total > 0 ? `${((disponibles/total)*100).toFixed(1)}%` : '0%';
 
         renderTable();
         renderGrafico(data);
@@ -190,8 +192,8 @@
         }).join('');
 
         document.getElementById('infoPaginacion').innerText = `Página ${paginaActual} de ${totalPaginas || 1}`;
-        document.getElementById('btnAnterior').disabled = paginaActual === 1;
-        document.getElementById('btnSiguiente').disabled = paginaActual >= totalPaginas || totalPaginas === 0;
+        document.getElementById('btnAnterior').disabled = (paginaActual === 1);
+        document.getElementById('btnSiguiente').disabled = (paginaActual >= totalPaginas || totalPaginas === 0);
     }
 
     function cambiarPagina(direccion) {
@@ -207,8 +209,8 @@
     }
 
     function irADetalleYFiltrar(filtro) {
-        const tab = new bootstrap.Tab(document.getElementById('pills-detalle-tab'));
-        tab.show();
+        const triggerEl = document.querySelector('#pills-detalle-tab');
+        bootstrap.Tab.getOrCreateInstance(triggerEl).show();
         setTimeout(() => {
             paginaActual = 1;
             if (filtro === 'TODOS') {
@@ -240,7 +242,7 @@
         container.innerHTML = '<div class="row row-cols-1 row-cols-md-2 g-2">' + zonas.map(z => {
             const totalZ = data.filter(u => u.zona === z).length;
             const dispZ = data.filter(u => u.zona === z && u.estado === 'DISPONIBLE').length;
-            const pOcup = (((totalZ - dispZ) / totalZ) * 100).toFixed(0);
+            const pOcup = totalZ > 0 ? (((totalZ - dispZ) / totalZ) * 100).toFixed(0) : 0;
             return `<div class="col"><div class="p-2 border rounded bg-light small fw-bold">${z}<span class="float-end text-success">${dispZ} Libres</span><div class="progress" style="height:6px; margin-top:5px;"><div class="progress-bar bg-success" style="width:${pOcup}%"></div></div></div></div>`;
         }).join('') + '</div>';
     }
