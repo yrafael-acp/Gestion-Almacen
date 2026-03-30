@@ -10,25 +10,17 @@
     <style>
         body { background-color: #f0f2f5; font-family: 'Segoe UI', sans-serif; overflow-x: hidden; }
         .navbar { background-color: #1a5928; border-bottom: 4px solid #f9ca24; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        
         .kpi-card { border: none; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); transition: transform 0.2s; position: relative; overflow: hidden; }
         .kpi-icon { font-size: 2.2rem; opacity: 0.1; position: absolute; right: 10px; bottom: -5px; }
         .kpi-title { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: #6c757d; }
         .kpi-value { font-size: 1.8rem; font-weight: 800; margin: 5px 0; }
-        
         .nav-pills .nav-link.active { background-color: #1a5928; }
         .nav-link { color: #1a5928; font-weight: 600; font-size: 0.9rem; }
-
         .table-container { height: 400px; overflow-y: auto; border: 1px solid #dee2e6; background: white; border-radius: 10px; }
         thead { position: sticky; top: 0; background-color: #f8f9fa; z-index: 10; }
-        
-        /* CONTENEDORES DASHBOARD AJUSTADOS */
         .chart-box { background: white; padding: 15px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); height: 350px; display: flex; flex-direction: column; }
-        /* Aquí forzamos a que el canvas no se estire como loco */
         .chart-wrapper { flex-grow: 1; position: relative; max-height: 250px; } 
-        
         .info-box { background: white; padding: 15px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); height: 350px; overflow-y: auto; }
-        
         .status-badge { font-size: 0.7rem; padding: 4px 10px; border-radius: 20px; font-weight: bold; }
         .bg-disponible { background-color: #d1e7dd; color: #0f5132; }
         .bg-ocupado { background-color: #f8d7da; color: #842029; }
@@ -72,7 +64,7 @@
                 </div>
                 <div class="col-4">
                     <div class="card kpi-card p-3 border-start border-success border-5">
-                        <span class="kpi-title">Libre</span>
+                        <span class="kpi-title">Disponible</span>
                         <div class="kpi-value text-success" id="valDisponible">0</div>
                         <span class="fw-bold text-success small" id="percDisponible">0%</span>
                         <i class="bi bi-unlock kpi-icon"></i>
@@ -89,10 +81,9 @@
                         </div>
                     </div>
                 </div>
-                
                 <div class="col-12 col-lg-8">
                     <div class="info-box">
-                        <h6 class="fw-bold text-muted small mb-3"><i class="bi bi-info-square me-1"></i> ESTADO POR ORGANIZADOR</h6>
+                        <h6 class="fw-bold text-muted small mb-3"><i class="bi bi-info-square me-1"></i> DISPONIBILIDAD POR ORGANIZADOR</h6>
                         <div id="resumenZonas"></div>
                     </div>
                 </div>
@@ -101,14 +92,14 @@
 
         <div class="tab-pane fade" id="view-detalle">
             <div class="card p-3 border-0 shadow-sm">
-                <div class="row g-2 mb-3">
-                    <div class="col-md-4"><input type="text" id="searchInput" class="form-control" placeholder="Buscar..."></div>
-                    <div class="col-md-4">
+                <div class="row g-2 mb-3 text-end">
+                    <div class="col-md-4"><input type="text" id="searchInput" class="form-control" placeholder="Buscar código o material..."></div>
+                    <div class="col-md-3">
                         <select id="organizadorFilter" class="form-select" onchange="filtrarOrganizador()">
                             <option value="TODOS">Zonas...</option>
                         </select>
                     </div>
-                    <div class="col-md-4 d-flex gap-1">
+                    <div class="col-md-5 d-flex gap-1">
                         <button class="btn btn-dark flex-grow-1" onclick="filtrar('TODOS')">TODO</button>
                         <button class="btn btn-primary" onclick="guardarEnGoogle()">+</button>
                     </div>
@@ -165,11 +156,12 @@
     function actualizarKPIs(data) {
         const total = data.length;
         const ocupadas = data.filter(u => u.estado === 'OCUPADO').length;
+        const disp = total - ocupadas;
         const pOcupado = total > 0 ? ((ocupadas / total) * 100).toFixed(1) : 0;
         document.getElementById('totalUbi').innerText = total;
         document.getElementById('valOcupado').innerText = ocupadas;
         document.getElementById('percOcupado').innerText = `${pOcupado}% del total`;
-        document.getElementById('valDisponible').innerText = total - ocupadas;
+        document.getElementById('valDisponible').innerText = disp;
         document.getElementById('percDisponible').innerText = `${(100 - pOcupado).toFixed(1)}% del total`;
     }
 
@@ -187,7 +179,7 @@
             },
             options: { 
                 maintainAspectRatio: false, 
-                cutout: '65%', // Hace el hueco de la dona más grande para que se vea más fina
+                cutout: '65%',
                 plugins: { legend: { display: false } } 
             }
         });
@@ -200,8 +192,22 @@
         zonas.forEach(z => {
             const totalZ = data.filter(u => u.zona === z).length;
             const ocupZ = data.filter(u => u.zona === z && u.estado === 'OCUPADO').length;
-            const perc = ((ocupZ/totalZ)*100).toFixed(0);
-            html += `<div class="col"><div class="p-2 border rounded bg-light small"><div class="d-flex justify-content-between fw-bold"><span>${z}</span><span>${perc}%</span></div><div class="progress" style="height: 6px;"><div class="progress-bar bg-success" style="width: ${perc}%"></div></div></div></div>`;
+            const dispZ = totalZ - ocupZ;
+            const pDisp = totalZ > 0 ? ((dispZ / totalZ) * 100).toFixed(0) : 0;
+            const pOcup = 100 - pDisp; // Para la barrita de carga
+
+            html += `
+                <div class="col">
+                    <div class="p-2 border rounded bg-light">
+                        <div class="d-flex justify-content-between small fw-bold mb-1">
+                            <span>${z}</span>
+                            <span class="text-success">${dispZ} Libres (${pDisp}%)</span>
+                        </div>
+                        <div class="progress" style="height: 8px;">
+                            <div class="progress-bar bg-success" style="width: ${pOcup}%"></div>
+                        </div>
+                    </div>
+                </div>`;
         });
         container.innerHTML = html + '</div>';
     }
