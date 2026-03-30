@@ -159,36 +159,85 @@
     }
 
     function actualizarKPIs(data) {
-        document.getElementById('totalUbi').innerText = data.length;
-        document.getElementById('valOcupado').innerText = data.filter(u => u.estado === 'OCUPADO').length;
-        document.getElementById('valSobre').innerText = data.filter(u => u.estado === 'SOBRESTOCK').length;
-        document.getElementById('valSinStock').innerText = data.filter(u => u.estado === 'SIN STOCK').length;
-        document.getElementById('valDisponible').innerText = data.filter(u => u.estado === 'DISPONIBLE').length;
-    }
+    const total = data.length;
+    
+    // Filtramos cada estado por separado
+    const ocupadoNormal = data.filter(u => u.estado === 'OCUPADO').length;
+    const sobrestock = data.filter(u => u.estado === 'SOBRESTOCK').length;
+    const sinStock = data.filter(u => u.estado === 'SIN STOCK').length;
+    const disponible = data.filter(u => u.estado === 'DISPONIBLE').length;
+
+    // LA SUMA REAL: Ocupado Total = Normal + Sobrestock + Sin Stock
+    const ocupadoTotal = ocupadoNormal + sobrestock + sinStock;
+    
+    // Porcentajes basados en la ocupación TOTAL
+    const pOcupado = total > 0 ? ((ocupadoTotal / total) * 100).toFixed(1) : 0;
+    const pDisponible = total > 0 ? ((disponible / total) * 100).toFixed(1) : 0;
+
+    // Inyectamos a los cuadritos
+    document.getElementById('totalUbi').innerText = total;
+    
+    // Cuadro OCUPADO: Ahora mostrará la suma de todo lo que no está libre
+    document.getElementById('valOcupado').innerText = ocupadoTotal;
+    document.getElementById('percOcupado').innerText = `${pOcupado}% del total`;
+    
+    // Sub-indicadores de Alerta
+    document.getElementById('valSobre').innerText = sobrestock;
+    document.getElementById('valSinStock').innerText = sinStock;
+    
+    // Cuadro DISPONIBLE
+    document.getElementById('valDisponible').innerText = disponible;
+    document.getElementById('percDisponible').innerText = `${pDisponible}% del total`;
+}
 
     function irADetalleYFiltrar(estado) {
-        // 1. Activar pestaña de detalle
-        const triggerEl = document.querySelector('#pills-detalle-tab');
-        bootstrap.Tab.getOrCreateInstance(triggerEl).show();
-        // 2. Limpiar otros campos
-        document.getElementById('searchInput').value = '';
-        document.getElementById('organizadorFilter').value = 'TODOS';
-        // 3. Filtrar
-        setTimeout(() => { filtrar(estado); }, 150);
-    }
+    const triggerEl = document.querySelector('#pills-detalle-tab');
+    bootstrap.Tab.getOrCreateInstance(triggerEl).show();
+    
+    document.getElementById('searchInput').value = '';
+    document.getElementById('organizadorFilter').value = 'TODOS';
+
+    setTimeout(() => {
+        if (estado === 'OCUPADO') {
+            // Si hace clic en el KPI principal, mostramos todo lo que esté ocupando espacio
+            const filtrados = ubicaciones.filter(u => 
+                u.estado === 'OCUPADO' || u.estado === 'SOBRESTOCK' || u.estado === 'SIN STOCK'
+            );
+            renderTable(filtrados);
+        } else if (estado === 'TODOS') {
+            renderTable(ubicaciones);
+        } else {
+            // Para estados específicos (SOBRESTOCK, SIN STOCK, DISPONIBLE)
+            const filtrados = ubicaciones.filter(u => u.estado === estado);
+            renderTable(filtrados);
+        }
+    }, 150);
+}
 
     function renderGrafico(data) {
-        const ctx = document.getElementById('ctxGrafico');
-        if (!ctx) return;
-        const zonas = [...new Set(data.map(u => u.zona))].sort();
-        const dataset = zonas.map(z => data.filter(u => u.zona === z && u.estado !== 'DISPONIBLE').length);
-        if (miGrafico) miGrafico.destroy();
-        miGrafico = new Chart(ctx, {
-            type: 'doughnut', 
-            data: { labels: zonas, datasets: [{ data: dataset, backgroundColor: ['#1a5928', '#f9ca24', '#eb4d4b', '#6ab04c', '#7ed6df', '#22a6b3'] }] },
-            options: { maintainAspectRatio: false, cutout: '65%', plugins: { legend: { display: false } } }
-        });
-    }
+    const ctx = document.getElementById('ctxGrafico');
+    if (!ctx) return;
+    
+    const zonas = [...new Set(data.map(u => u.zona))].sort();
+    
+    // La dona mostrará el TOTAL de ocupación por cada zona (Normal + Alertas)
+    const dataset = zonas.map(z => {
+        return data.filter(u => u.zona === z && u.estado !== 'DISPONIBLE').length;
+    });
+
+    if (miGrafico) miGrafico.destroy();
+    miGrafico = new Chart(ctx, {
+        type: 'doughnut', 
+        data: {
+            labels: zonas,
+            datasets: [{ 
+                data: dataset, 
+                backgroundColor: ['#1a5928', '#f9ca24', '#eb4d4b', '#6ab04c', '#7ed6df', '#22a6b3'] 
+            }]
+        },
+        options: { maintainAspectRatio: false, cutout: '65%', plugins: { legend: { display: false } } }
+    });
+}
 
     function generarListaZonas(data) {
         const container = document.getElementById('resumenZonas');
