@@ -26,14 +26,22 @@
         .bg-ocupado { background-color: #cfe2ff; color: #084298; border: 1px solid #b6d4fe; } 
         .bg-sobrestock { background-color: #f8d7da; color: #842029; border: 1px solid #f5c2c7; } 
         .bg-sin-stock { background-color: #fff3cd; color: #856404; border: 1px solid #ffeeba; } 
-        #loader-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: white; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        
+        /* Loader más discreto y con salida de emergencia */
+        #loader-overlay { 
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+            background: rgba(255,255,255,0.9); z-index: 9999; 
+            display: flex; flex-direction: column; align-items: center; justify-content: center; 
+            transition: opacity 0.5s ease;
+        }
     </style>
 </head>
 <body>
 
 <div id="loader-overlay">
     <div class="spinner-border text-success" role="status"></div>
-    <span class="mt-2 fw-bold text-success">Sincronizando con Cerro Prieto...</span>
+    <span class="mt-2 fw-bold text-success">Sincronizando Cerro Prieto...</span>
+    <button class="btn btn-sm btn-outline-secondary mt-3" onclick="document.getElementById('loader-overlay').style.display='none'">Omitir espera</button>
 </div>
 
 <nav class="navbar navbar-dark mb-3 px-3">
@@ -59,6 +67,7 @@
                     <div class="card kpi-card p-2 border-start border-primary border-4">
                         <span class="kpi-title">Ocupado</span>
                         <div class="kpi-value text-primary" id="valOcupado">0</div>
+                        <span class="fw-bold text-primary" id="percOcupado" style="font-size: 0.7rem;">0%</span>
                     </div>
                 </div>
                 <div class="col" onclick="irADetalleYFiltrar('SOBRESTOCK')">
@@ -77,6 +86,7 @@
                     <div class="card kpi-card p-2 border-start border-success border-4">
                         <span class="kpi-title">Libre</span>
                         <div class="kpi-value text-success" id="valDisponible">0</div>
+                        <span class="fw-bold text-success" id="percDisponible" style="font-size: 0.7rem;">0%</span>
                     </div>
                 </div>
             </div>
@@ -104,7 +114,6 @@
                     <div class="col-md-4"><select id="organizadorFilter" class="form-select" onchange="filtrarOrganizador()"><option value="TODOS">Zonas...</option></select></div>
                     <div class="col-md-4 d-flex gap-1">
                         <button class="btn btn-dark flex-grow-1" onclick="filtrar('TODOS')">LIMPIAR</button>
-                        <button class="btn btn-primary" onclick="guardarEnGoogle()">+</button>
                     </div>
                 </div>
                 <div class="table-container">
@@ -125,34 +134,30 @@
 
     async function cargarDatosDesdeGoogle() {
         const overlay = document.getElementById('loader-overlay');
-        const cache = localStorage.getItem('cache_ubi');
         
-        // Carga rápida desde caché si existe
+        // Timer de seguridad: Si en 4 segundos no carga, quitamos el loading a la fuerza
+        setTimeout(() => { if(overlay) overlay.style.display = 'none'; }, 4000);
+
+        const cache = localStorage.getItem('cache_ubi');
         if (cache) { 
             try {
                 ubicaciones = JSON.parse(cache); 
                 actualizarTodo(ubicaciones); 
-                overlay.style.display = 'none'; 
-            } catch(e) { console.error("Cache corrupto"); }
+            } catch(e) { console.error("Cache falló"); }
         }
 
         try {
             const response = await fetch(SCRIPT_URL);
             const freshData = await response.json();
             
-            // Si el servidor responde con error
-            if (freshData.result === "error") {
-                alert("Error de Google: " + freshData.error);
-                return;
-            }
+            if (freshData.result === "error") throw new Error(freshData.error);
 
             ubicaciones = freshData;
             localStorage.setItem('cache_ubi', JSON.stringify(freshData));
             actualizarTodo(freshData);
         } catch (e) { 
-            console.error("Error de red:", e);
+            console.error("Error cargando:", e);
         } finally {
-            // Este bloque se ejecuta SIEMPRE, así no te quedas con la pantalla verde
             overlay.style.display = 'none';
         }
     }
@@ -179,85 +184,53 @@
     }
 
     function actualizarKPIs(data) {
-    const total = data.length;
-    
-    // Filtramos cada estado por separado
-    const ocupadoNormal = data.filter(u => u.estado === 'OCUPADO').length;
-    const sobrestock = data.filter(u => u.estado === 'SOBRESTOCK').length;
-    const sinStock = data.filter(u => u.estado === 'SIN STOCK').length;
-    const disponible = data.filter(u => u.estado === 'DISPONIBLE').length;
+        const total = data.length;
+        const ocupadoNormal = data.filter(u => u.estado === 'OCUPADO').length;
+        const sobrestock = data.filter(u => u.estado === 'SOBRESTOCK').length;
+        const sinStock = data.filter(u => u.estado === 'SIN STOCK').length;
+        const disponible = data.filter(u => u.estado === 'DISPONIBLE').length;
 
-    // LA SUMA REAL: Ocupado Total = Normal + Sobrestock + Sin Stock
-    const ocupadoTotal = ocupadoNormal + sobrestock + sinStock;
-    
-    // Porcentajes basados en la ocupación TOTAL
-    const pOcupado = total > 0 ? ((ocupadoTotal / total) * 100).toFixed(1) : 0;
-    const pDisponible = total > 0 ? ((disponible / total) * 100).toFixed(1) : 0;
+        const ocupadoTotal = ocupadoNormal + sobrestock + sinStock;
+        const pOcupado = total > 0 ? ((ocupadoTotal / total) * 100).toFixed(1) : 0;
+        const pDisponible = total > 0 ? ((disponible / total) * 100).toFixed(1) : 0;
 
-    // Inyectamos a los cuadritos
-    document.getElementById('totalUbi').innerText = total;
-    
-    // Cuadro OCUPADO: Ahora mostrará la suma de todo lo que no está libre
-    document.getElementById('valOcupado').innerText = ocupadoTotal;
-    document.getElementById('percOcupado').innerText = `${pOcupado}% del total`;
-    
-    // Sub-indicadores de Alerta
-    document.getElementById('valSobre').innerText = sobrestock;
-    document.getElementById('valSinStock').innerText = sinStock;
-    
-    // Cuadro DISPONIBLE
-    document.getElementById('valDisponible').innerText = disponible;
-    document.getElementById('percDisponible').innerText = `${pDisponible}% del total`;
-}
+        document.getElementById('totalUbi').innerText = total;
+        document.getElementById('valOcupado').innerText = ocupadoTotal;
+        document.getElementById('percOcupado').innerText = `${pOcupado}%`;
+        document.getElementById('valSobre').innerText = sobrestock;
+        document.getElementById('valSinStock').innerText = sinStock;
+        document.getElementById('valDisponible').innerText = disponible;
+        document.getElementById('percDisponible').innerText = `${pDisponible}%`;
+    }
 
     function irADetalleYFiltrar(estado) {
-    const triggerEl = document.querySelector('#pills-detalle-tab');
-    bootstrap.Tab.getOrCreateInstance(triggerEl).show();
-    
-    document.getElementById('searchInput').value = '';
-    document.getElementById('organizadorFilter').value = 'TODOS';
-
-    setTimeout(() => {
-        if (estado === 'OCUPADO') {
-            // Si hace clic en el KPI principal, mostramos todo lo que esté ocupando espacio
-            const filtrados = ubicaciones.filter(u => 
-                u.estado === 'OCUPADO' || u.estado === 'SOBRESTOCK' || u.estado === 'SIN STOCK'
-            );
-            renderTable(filtrados);
-        } else if (estado === 'TODOS') {
-            renderTable(ubicaciones);
-        } else {
-            // Para estados específicos (SOBRESTOCK, SIN STOCK, DISPONIBLE)
-            const filtrados = ubicaciones.filter(u => u.estado === estado);
-            renderTable(filtrados);
-        }
-    }, 150);
-}
+        const triggerEl = document.querySelector('#pills-detalle-tab');
+        bootstrap.Tab.getOrCreateInstance(triggerEl).show();
+        setTimeout(() => {
+            if (estado === 'OCUPADO') {
+                renderTable(ubicaciones.filter(u => u.estado !== 'DISPONIBLE'));
+            } else if (estado === 'TODOS') {
+                renderTable(ubicaciones);
+            } else {
+                renderTable(ubicaciones.filter(u => u.estado === estado));
+            }
+        }, 150);
+    }
 
     function renderGrafico(data) {
-    const ctx = document.getElementById('ctxGrafico').getContext('2d');
-    if (!ctx) return;
-    
-    const zonas = [...new Set(data.map(u => u.zona))].sort();
-    
-    // La dona mostrará el TOTAL de ocupación por cada zona (Normal + Alertas)
-    const dataset = zonas.map(z => {
-        return data.filter(u => u.zona === z && u.estado !== 'DISPONIBLE').length;
-    });
+        const canvas = document.getElementById('ctxGrafico');
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        const zonas = [...new Set(data.map(u => u.zona))].sort();
+        const dataset = zonas.map(z => data.filter(u => u.zona === z && u.estado !== 'DISPONIBLE').length);
 
-    if (miGrafico) miGrafico.destroy();
-    miGrafico = new Chart(ctx, {
-        type: 'doughnut', 
-        data: {
-            labels: zonas,
-            datasets: [{ 
-                data: dataset, 
-                backgroundColor: ['#1a5928', '#f9ca24', '#eb4d4b', '#6ab04c', '#7ed6df', '#22a6b3'] 
-            }]
-        },
-        options: { maintainAspectRatio: false, cutout: '65%', plugins: { legend: { display: false } } }
-    });
-}
+        if (miGrafico) miGrafico.destroy();
+        miGrafico = new Chart(ctx, {
+            type: 'doughnut', 
+            data: { labels: zonas, datasets: [{ data: dataset, backgroundColor: ['#1a5928', '#f9ca24', '#eb4d4b', '#6ab04c', '#7ed6df', '#22a6b3'] }] },
+            options: { maintainAspectRatio: false, cutout: '65%', plugins: { legend: { display: false } } }
+        });
+    }
 
     function generarListaZonas(data) {
         const container = document.getElementById('resumenZonas');
@@ -279,34 +252,8 @@
         zs.forEach(z => { if(z) s.add(new Option(z,z)); });
     }
 
-    function filtrar(tipo) { 
-        if (tipo === 'TODOS') {
-            renderTable(ubicaciones);
-        } else {
-            renderTable(ubicaciones.filter(u => u.estado === tipo)); 
-        }
-    }
-    
-    function filtrarOrganizador() { 
-        const v = document.getElementById('organizadorFilter').value; 
-        renderTable(v === 'TODOS' ? ubicaciones : ubicaciones.filter(u => u.zona === v)); 
-    }
-
-    let timer;
-    document.getElementById('searchInput').addEventListener('input', (e) => {
-        clearTimeout(timer);
-        timer = setTimeout(() => {
-            const term = e.target.value.toLowerCase();
-            renderTable(ubicaciones.filter(u => (u.id + u.zona + u.material).toLowerCase().includes(term)));
-        }, 300);
-    });
-
-    async function guardarEnGoogle() {
-        const id = prompt("ID:"); const zona = prompt("Zona:");
-        if(!id || !zona) return;
-        await fetch(SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({id, zona}) });
-        location.reload();
-    }
+    function filtrar(tipo) { renderTable(tipo === 'TODOS' ? ubicaciones : ubicaciones.filter(u => u.estado === tipo)); }
+    function filtrarOrganizador() { const v = document.getElementById('organizadorFilter').value; renderTable(v === 'TODOS' ? ubicaciones : ubicaciones.filter(u => u.zona === v)); }
 
     window.onload = cargarDatosDesdeGoogle;
 </script>
