@@ -148,23 +148,39 @@
         generarListaZonas(data);
     }
 
-    function actualizarKPIs(data) {
+   function actualizarKPIs(data) {
         const total = data.length;
-        const ocupadoNormal = data.filter(u => u.estado === 'OCUPADO').length;
+        
+        // Filtramos por cada estado que manda el .gs corregido
         const sobrestock = data.filter(u => u.estado === 'SOBRESTOCK').length;
         const sinStock = data.filter(u => u.estado === 'SIN STOCK').length;
+        const ocupadoNormal = data.filter(u => u.estado === 'OCUPADO').length;
         const disponible = data.filter(u => u.estado === 'DISPONIBLE').length;
 
-        const ocupadoTotal = ocupadoNormal + sobrestock + sinStock;
+        // SUMA REAL: Ocupado es todo lo que NO está disponible
+        const ocupadoTotal = sobrestock + sinStock + ocupadoNormal;
+        
+        // Porcentajes
         const pOcupado = total > 0 ? ((ocupadoTotal / total) * 100).toFixed(1) : 0;
+        const pLibre = total > 0 ? ((disponible / total) * 100).toFixed(1) : 0;
 
-        document.getElementById('totalUbi').innerText = total;
+        // Inyectamos los valores a los IDs del Dashboard
+        document.getElementById('totalUbi').innerText = total; // 3772
+        
+        // Cuadro Ocupado (El macro)
         document.getElementById('valOcupado').innerText = ocupadoTotal;
         document.getElementById('percOcupado').innerText = `${pOcupado}% del almacén`;
+        
+        // Cuadros de Alerta (Los micros)
         document.getElementById('valSobre').innerText = sobrestock;
         document.getElementById('valSinStock').innerText = sinStock;
+        
+        // Cuadro Libre
         document.getElementById('valDisponible').innerText = disponible;
-        document.getElementById('percDisponible').innerText = `${(100 - pOcupado).toFixed(1)}% libre`;
+        document.getElementById('percDisponible').innerText = `${pLibre}% libre`;
+        
+        // Log para que tú mismo veas en consola si los números suman bien
+        console.log("Resumen CP:", {total, ocupadoTotal, disponible, suma: (ocupadoTotal + disponible)});
     }
 
     function renderTable(data) {
