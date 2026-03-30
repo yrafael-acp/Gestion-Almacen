@@ -159,33 +159,78 @@
         }
     }
 
-    function actualizarTodo(data) {
+  // Variable global para los datos
+let ubicaciones = [];
+let datosFiltrados = [];
+let paginaActual = 1;
+const filasPorPagina = 100;
+
+function actualizarTodo(data) {
+    ubicaciones = data;
     datosFiltrados = data;
     paginaActual = 1;
-    
-    const total = data.length; // 3772
-    const disponibles = data.filter(u => u.estado === 'DISPONIBLE').length; // Debería dar 1479
-    const ocupadosTotal = total - disponibles; // Debería dar 2293
 
-    // Estos son sub-estados de los ocupados
+    // FUNCIÓN ESPECÍFICA: CONTEO DE INDICADORES
+    const total = data.length;
+    const disponibles = data.filter(u => u.estado === 'DISPONIBLE').length;
+    const ocupadosTotal = total - disponibles; // Incluye Ocupados, Sobrestock y Sin Stock
+
     const sobre = data.filter(u => u.estado === 'SOBRESTOCK').length;
     const sinStock = data.filter(u => u.estado === 'SIN STOCK').length;
 
-    // Pintamos los números en los cuadros
+    // Inyectar en HTML
     document.getElementById('totalUbi').innerText = total;
-    document.getElementById('valOcupado').innerText = ocupadosTotal;
     document.getElementById('valDisponible').innerText = disponibles;
+    document.getElementById('valOcupado').innerText = ocupadosTotal;
     document.getElementById('valSobre').innerText = sobre;
     document.getElementById('valSinStock').innerText = sinStock;
 
     // Porcentajes
-    const pOcupado = total > 0 ? ((ocupadosTotal / total) * 100).toFixed(1) : 0;
-    document.getElementById('percOcupado').innerText = `${pOcupado}% del total`;
-    document.getElementById('percDisponible').innerText = `${(100 - pOcupado).toFixed(1)}% libre`;
+    document.getElementById('percOcupado').innerText = `${((ocupadosTotal/total)*100).toFixed(1)}%`;
+    document.getElementById('percDisponible').innerText = `${((disponibles/total)*100).toFixed(1)}%`;
 
-    renderTable(); 
-    renderGrafico(data);
-    generarListaZonas(data);
+    renderTable();
+}
+
+// FUNCIÓN ESPECÍFICA: FILTRADO POR CLIC EN KPI
+function irADetalleYFiltrar(filtro) {
+    // Cambiar a la pestaña de Detalle
+    const tab = new bootstrap.Tab(document.getElementById('pills-detalle-tab'));
+    tab.show();
+
+    setTimeout(() => {
+        paginaActual = 1;
+        if (filtro === 'TODOS') {
+            datosFiltrados = ubicaciones;
+        } else if (filtro === 'OCUPADOS_FULL') {
+            datosFiltrados = ubicaciones.filter(u => u.estado !== 'DISPONIBLE');
+        } else {
+            datosFiltrados = ubicaciones.filter(u => u.estado === filtro);
+        }
+        renderTable();
+    }, 150);
+}
+
+function renderTable() {
+    const tbody = document.getElementById('tableBody');
+    const inicio = (paginaActual - 1) * filasPorPagina;
+    const fin = inicio + filasPorPagina;
+    const dataPagina = datosFiltrados.slice(inicio, fin);
+
+    tbody.innerHTML = dataPagina.map(u => {
+        let badge = u.estado === 'DISPONIBLE' ? 'bg-success' : 'bg-primary';
+        if(u.estado === 'SOBRESTOCK') badge = 'bg-danger';
+        if(u.estado === 'SIN STOCK') badge = 'bg-warning';
+        
+        return `<tr>
+            <td>${u.id}</td>
+            <td>${u.zona}</td>
+            <td>${u.material}</td>
+            <td><span class="badge ${badge}">${u.estado}</span></td>
+        </tr>`;
+    }).join('');
+    
+    document.getElementById('infoPaginacion').innerText = `Página ${paginaActual}`;
 }
 
     function renderTable() {
