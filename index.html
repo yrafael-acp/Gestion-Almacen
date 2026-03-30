@@ -67,13 +67,17 @@
 </div>
 
 <script>
-    // 1. Simulación de los datos de tu Excel (Table1 / Table3)
-    let ubicaciones = [
-        { id: "A-01-01", zona: "Almacén Central", material: "Fertilizante NPK", estado: "Ocupado" },
-        { id: "A-01-02", zona: "Almacén Central", material: "Cajas Packing", estado: "Disponible" },
-        { id: "B-05-10", zona: "Zona Campo 4", material: "Mangueras Riego", estado: "Ocupado" },
-        { id: "C-02-05", zona: "Mantenimiento", material: "Repuestos Tractor", estado: "Disponible" }
-    ];
+    async function cargarDatosDesdeGoogle() {
+    const response = await fetch(SCRIPT_URL);
+    const datosReales = await response.json();
+    
+    // Reemplazamos los datos de prueba por los de tu Google Sheet
+    ubicaciones = datosReales; 
+    renderTable(ubicaciones);
+}
+
+// Llama a la función apenas abra la página
+window.onload = cargarDatosDesdeGoogle;
 
     // 2. Función para renderizar la tabla (Equivalente a tus macros de filtrado)
     function renderTable(data) {
