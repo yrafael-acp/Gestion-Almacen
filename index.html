@@ -10,7 +10,8 @@
     <style>
         body { background-color: #f0f2f5; font-family: 'Segoe UI', sans-serif; overflow-x: hidden; }
         .navbar { background-color: #1a5928; border-bottom: 4px solid #f9ca24; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        .kpi-card { border: none; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); transition: transform 0.2s; position: relative; overflow: hidden; height: 100%; }
+        .kpi-card { border: none; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); transition: transform 0.2s; position: relative; overflow: hidden; height: 100%; cursor: pointer; }
+        .kpi-card:hover { transform: scale(1.03); box-shadow: 0 6px 15px rgba(0,0,0,0.1); }
         .kpi-title { font-size: 0.65rem; font-weight: 700; text-transform: uppercase; color: #6c757d; }
         .kpi-value { font-size: 1.5rem; font-weight: 800; margin: 2px 0; }
         .nav-pills .nav-link.active { background-color: #1a5928; color: white; }
@@ -20,14 +21,11 @@
         .chart-box { background: white; padding: 15px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); height: 350px; display: flex; flex-direction: column; }
         .chart-wrapper { flex-grow: 1; position: relative; max-height: 250px; } 
         .info-box { background: white; padding: 15px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); height: 350px; overflow-y: auto; }
-        
-        /* ESTADOS ACTUALIZADOS */
         .status-badge { font-size: 0.7rem; padding: 4px 10px; border-radius: 20px; font-weight: bold; }
         .bg-disponible { background-color: #d1e7dd; color: #0f5132; }
-        .bg-ocupado { background-color: #cfe2ff; color: #084298; border: 1px solid #b6d4fe; } /* Azul suave */
-        .bg-sobrestock { background-color: #f8d7da; color: #842029; border: 1px solid #f5c2c7; } /* Rojo suave */
-        .bg-sin-stock { background-color: #fff3cd; color: #856404; border: 1px solid #ffeeba; } /* Amarillo */
-        
+        .bg-ocupado { background-color: #cfe2ff; color: #084298; border: 1px solid #b6d4fe; } 
+        .bg-sobrestock { background-color: #f8d7da; color: #842029; border: 1px solid #f5c2c7; } 
+        .bg-sin-stock { background-color: #fff3cd; color: #856404; border: 1px solid #ffeeba; } 
         #loader-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: white; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; }
     </style>
 </head>
@@ -51,31 +49,31 @@
     <div class="tab-content" id="pills-tabContent">
         <div class="tab-pane fade show active" id="view-resumen" role="tabpanel">
             <div class="row g-2 mb-3 text-center">
-                <div class="col">
+                <div class="col" onclick="irADetalleYFiltrar('TODOS')">
                     <div class="card kpi-card p-2 border-start border-dark border-4">
                         <span class="kpi-title">Capacidad</span>
                         <div class="kpi-value" id="totalUbi">0</div>
                     </div>
                 </div>
-                <div class="col">
+                <div class="col" onclick="irADetalleYFiltrar('OCUPADO')">
                     <div class="card kpi-card p-2 border-start border-primary border-4">
                         <span class="kpi-title">Ocupado</span>
                         <div class="kpi-value text-primary" id="valOcupado">0</div>
                     </div>
                 </div>
-                <div class="col">
+                <div class="col" onclick="irADetalleYFiltrar('SOBRESTOCK')">
                     <div class="card kpi-card p-2 border-start border-danger border-4">
                         <span class="kpi-title">Sobrestock</span>
                         <div class="kpi-value text-danger" id="valSobre">0</div>
                     </div>
                 </div>
-                <div class="col">
+                <div class="col" onclick="irADetalleYFiltrar('SIN STOCK')">
                     <div class="card kpi-card p-2 border-start border-warning border-4">
                         <span class="kpi-title">Sin Stock (0)</span>
                         <div class="kpi-value text-warning" id="valSinStock">0</div>
                     </div>
                 </div>
-                <div class="col">
+                <div class="col" onclick="irADetalleYFiltrar('DISPONIBLE')">
                     <div class="card kpi-card p-2 border-start border-success border-4">
                         <span class="kpi-title">Libre</span>
                         <div class="kpi-value text-success" id="valDisponible">0</div>
@@ -105,7 +103,7 @@
                     <div class="col-md-4"><input type="text" id="searchInput" class="form-control" placeholder="Buscar..."></div>
                     <div class="col-md-4"><select id="organizadorFilter" class="form-select" onchange="filtrarOrganizador()"><option value="TODOS">Zonas...</option></select></div>
                     <div class="col-md-4 d-flex gap-1">
-                        <button class="btn btn-dark flex-grow-1" onclick="filtrar('TODOS')">TODO</button>
+                        <button class="btn btn-dark flex-grow-1" onclick="filtrar('TODOS')">LIMPIAR</button>
                         <button class="btn btn-primary" onclick="guardarEnGoogle()">+</button>
                     </div>
                 </div>
@@ -156,7 +154,6 @@
             if(item.estado === 'OCUPADO') badge = 'bg-ocupado';
             if(item.estado === 'SOBRESTOCK') badge = 'bg-sobrestock';
             if(item.estado === 'SIN STOCK') badge = 'bg-sin-stock';
-            
             tbody.innerHTML += `<tr><td><strong>${item.id}</strong></td><td>${item.zona}</td><td><small>${item.material || '-'}</small></td><td><span class="status-badge ${badge}">${item.estado}</span></td></tr>`;
         });
     }
@@ -167,6 +164,17 @@
         document.getElementById('valSobre').innerText = data.filter(u => u.estado === 'SOBRESTOCK').length;
         document.getElementById('valSinStock').innerText = data.filter(u => u.estado === 'SIN STOCK').length;
         document.getElementById('valDisponible').innerText = data.filter(u => u.estado === 'DISPONIBLE').length;
+    }
+
+    function irADetalleYFiltrar(estado) {
+        // 1. Activar pestaña de detalle
+        const triggerEl = document.querySelector('#pills-detalle-tab');
+        bootstrap.Tab.getOrCreateInstance(triggerEl).show();
+        // 2. Limpiar otros campos
+        document.getElementById('searchInput').value = '';
+        document.getElementById('organizadorFilter').value = 'TODOS';
+        // 3. Filtrar
+        setTimeout(() => { filtrar(estado); }, 150);
     }
 
     function renderGrafico(data) {
@@ -202,8 +210,18 @@
         zs.forEach(z => { if(z) s.add(new Option(z,z)); });
     }
 
-    function filtrar(tipo) { renderTable(tipo === 'TODOS' ? ubicaciones : ubicaciones.filter(u => u.estado === tipo)); }
-    function filtrarOrganizador() { const v = document.getElementById('organizadorFilter').value; renderTable(v === 'TODOS' ? ubicaciones : ubicaciones.filter(u => u.zona === v)); }
+    function filtrar(tipo) { 
+        if (tipo === 'TODOS') {
+            renderTable(ubicaciones);
+        } else {
+            renderTable(ubicaciones.filter(u => u.estado === tipo)); 
+        }
+    }
+    
+    function filtrarOrganizador() { 
+        const v = document.getElementById('organizadorFilter').value; 
+        renderTable(v === 'TODOS' ? ubicaciones : ubicaciones.filter(u => u.zona === v)); 
+    }
 
     let timer;
     document.getElementById('searchInput').addEventListener('input', (e) => {
