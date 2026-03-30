@@ -126,15 +126,35 @@
     async function cargarDatosDesdeGoogle() {
         const overlay = document.getElementById('loader-overlay');
         const cache = localStorage.getItem('cache_ubi');
-        if (cache) { ubicaciones = JSON.parse(cache); actualizarTodo(ubicaciones); overlay.style.display = 'none'; }
+        
+        // Carga rápida desde caché si existe
+        if (cache) { 
+            try {
+                ubicaciones = JSON.parse(cache); 
+                actualizarTodo(ubicaciones); 
+                overlay.style.display = 'none'; 
+            } catch(e) { console.error("Cache corrupto"); }
+        }
+
         try {
             const response = await fetch(SCRIPT_URL);
             const freshData = await response.json();
+            
+            // Si el servidor responde con error
+            if (freshData.result === "error") {
+                alert("Error de Google: " + freshData.error);
+                return;
+            }
+
             ubicaciones = freshData;
             localStorage.setItem('cache_ubi', JSON.stringify(freshData));
             actualizarTodo(freshData);
+        } catch (e) { 
+            console.error("Error de red:", e);
+        } finally {
+            // Este bloque se ejecuta SIEMPRE, así no te quedas con la pantalla verde
             overlay.style.display = 'none';
-        } catch (e) { console.error(e); }
+        }
     }
 
     function actualizarTodo(data) {
@@ -215,7 +235,7 @@
 }
 
     function renderGrafico(data) {
-    const ctx = document.getElementById('ctxGrafico');
+    const ctx = document.getElementById('ctxGrafico').getContext('2d');
     if (!ctx) return;
     
     const zonas = [...new Set(data.map(u => u.zona))].sort();
