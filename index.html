@@ -160,33 +160,33 @@
     }
 
     function actualizarTodo(data) {
-        datosFiltrados = data;
-        paginaActual = 1;
-        
-        // --- CIRUGÍA DE NÚMEROS REALES ---
-        const total = data.length; // 3772
-        const disponibles = data.filter(u => u.estado === 'DISPONIBLE').length; // 1479
-        const ocupadosTotal = total - disponibles; // 2293
+    datosFiltrados = data;
+    paginaActual = 1;
+    
+    const total = data.length; // 3772
+    const disponibles = data.filter(u => u.estado === 'DISPONIBLE').length; // Debería dar 1479
+    const ocupadosTotal = total - disponibles; // Debería dar 2293
 
-        const sobre = data.filter(u => u.estado === 'SOBRESTOCK').length;
-        const sinStock = data.filter(u => u.estado === 'SIN STOCK').length;
+    // Estos son sub-estados de los ocupados
+    const sobre = data.filter(u => u.estado === 'SOBRESTOCK').length;
+    const sinStock = data.filter(u => u.estado === 'SIN STOCK').length;
 
-        // Inyectamos a los KPIs
-        document.getElementById('totalUbi').innerText = total;
-        document.getElementById('valOcupado').innerText = ocupadosTotal;
-        document.getElementById('valDisponible').innerText = disponibles;
-        document.getElementById('valSobre').innerText = sobre;
-        document.getElementById('valSinStock').innerText = sinStock;
+    // Pintamos los números en los cuadros
+    document.getElementById('totalUbi').innerText = total;
+    document.getElementById('valOcupado').innerText = ocupadosTotal;
+    document.getElementById('valDisponible').innerText = disponibles;
+    document.getElementById('valSobre').innerText = sobre;
+    document.getElementById('valSinStock').innerText = sinStock;
 
-        // Porcentajes
-        const pOcupado = total > 0 ? ((ocupadosTotal / total) * 100).toFixed(1) : 0;
-        document.getElementById('percOcupado').innerText = `${pOcupado}% del total`;
-        document.getElementById('percDisponible').innerText = `${(100 - pOcupado).toFixed(1)}% del total`;
+    // Porcentajes
+    const pOcupado = total > 0 ? ((ocupadosTotal / total) * 100).toFixed(1) : 0;
+    document.getElementById('percOcupado').innerText = `${pOcupado}% del total`;
+    document.getElementById('percDisponible').innerText = `${(100 - pOcupado).toFixed(1)}% libre`;
 
-        renderTable(); 
-        renderGrafico(data);
-        generarListaZonas(data);
-    }
+    renderTable(); 
+    renderGrafico(data);
+    generarListaZonas(data);
+}
 
     function renderTable() {
         const tbody = document.getElementById('tableBody');
