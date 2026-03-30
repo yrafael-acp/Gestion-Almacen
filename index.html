@@ -12,7 +12,7 @@
         .status-badge { font-size: 0.8rem; padding: 5px 10px; border-radius: 20px; text-transform: uppercase; font-weight: bold; }
         .bg-disponible { background-color: #d1e7dd; color: #0f5132; }
         .bg-ocupado { background-color: #f8d7da; color: #842029; }
-        #loader { display: block; text-align: center; padding: 20px; }
+        #loader { display: block; text-align: center; padding: 20px; font-weight: bold; color: #1a5928; }
     </style>
 </head>
 <body>
@@ -49,7 +49,7 @@
             <button class="btn btn-success" onclick="guardarEnGoogle()">+ Nuevo Registro</button>
         </div>
         
-        <div id="loader">Cargando datos desde la nube...</div>
+        <div id="loader">Conectando con la nube de Cerro Prieto...</div>
 
         <div class="table-responsive">
             <table class="table table-hover d-none" id="mainTable">
@@ -71,11 +71,19 @@
     const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyPTKRi6vDUxH9eIQNwh8XZCZAucg44Dr0TvywARJ64bUcYCVfmkPnk9nsSjf6g5DyxoA/exec';
     let ubicaciones = [];
 
-    // 1. Carga de datos real desde Google
+    // 1. Carga de datos real
     async function cargarDatosDesdeGoogle() {
         try {
             const response = await fetch(SCRIPT_URL);
-            ubicaciones = await response.json();
+            const data = await response.json();
+            
+            // Limpiamos y asignamos los datos reales
+            ubicaciones = data.map(item => ({
+                id: item.id || "",
+                zona: item.zona || "",
+                material: item.material || "",
+                estado: item.estado || "DISPONIBLE"
+            }));
             
             document.getElementById('loader').style.display = 'none';
             document.getElementById('mainTable').classList.remove('d-none');
@@ -83,24 +91,24 @@
             renderTable(ubicaciones);
         } catch (error) {
             console.error("Error:", error);
-            document.getElementById('loader').innerText = "Error al conectar con la base de datos.";
+            document.getElementById('loader').innerText = "⚠️ Error: No se pudo cargar la data. Revisa los permisos del Script.";
         }
     }
 
-    // 2. Renderizar tabla con lógica de colores
+    // 2. Renderizado con protección contra vacíos
     function renderTable(data) {
         const tbody = document.getElementById('tableBody');
         tbody.innerHTML = '';
         
         data.forEach((item) => {
-            const estadoFinal = item.estado.toUpperCase();
+            const estadoFinal = (item.estado || "DISPONIBLE").toUpperCase();
             const badgeClass = estadoFinal === 'DISPONIBLE' ? 'bg-disponible' : 'bg-ocupado';
             
             tbody.innerHTML += `
                 <tr>
                     <td><strong>${item.id}</strong></td>
                     <td>${item.zona}</td>
-                    <td>${item.material || '---'}</td>
+                    <td>${item.material ? item.material : '<span class="text-muted">---</span>'}</td>
                     <td><span class="status-badge ${badgeClass}">${estadoFinal}</span></td>
                 </tr>
             `;
@@ -108,21 +116,23 @@
         actualizarKPIs(data);
     }
 
-    // 3. Buscador en tiempo real
+    // 3. Buscador blindado contra errores de 'undefined'
     document.getElementById('searchInput').addEventListener('keyup', (e) => {
         const term = e.target.value.toLowerCase();
-        const filtered = ubicaciones.filter(u => 
-            u.id.toLowerCase().includes(term) || 
-            u.zona.toLowerCase().includes(term) ||
-            (u.material && u.material.toLowerCase().includes(term))
-        );
+        const filtered = ubicaciones.filter(u => {
+            const id = (u.id || "").toString().toLowerCase();
+            const zona = (u.zona || "").toString().toLowerCase();
+            const material = (u.material || "").toString().toLowerCase();
+            
+            return id.includes(term) || zona.includes(term) || material.includes(term);
+        });
         renderTable(filtered);
     });
 
     // 4. KPIs Dinámicos
     function actualizarKPIs(data) {
         const total = data.length;
-        const ocupadas = data.filter(u => u.estado.toUpperCase() === 'OCUPADO').length;
+        const ocupadas = data.filter(u => (u.estado || "").toUpperCase() === 'OCUPADO').length;
         const dispPerc = total > 0 ? ((total - ocupadas) / total * 100).toFixed(1) : 0;
 
         document.getElementById('totalUbi').innerText = total;
@@ -130,21 +140,20 @@
         document.getElementById('percDisp').innerText = dispPerc + '%';
     }
 
-    // 5. Inyectar nuevo registro a Google Sheets
+    // 5. Guardado en Google
     async function guardarEnGoogle() {
         const id = prompt("Ingrese Código de Ubicación:");
         const zona = prompt("Ingrese Zona/Fila:");
         const material = prompt("Ingrese Material:");
 
         if(!id || !zona) {
-            alert("El código y la zona son obligatorios.");
+            alert("Papi, el código y la zona son obligatorios para el registro.");
             return;
         }
 
         const nuevaUbi = { id, zona, material, estado: "OCUPADO" };
 
         try {
-            // Usamos mode: 'no-cors' para Apps Script
             await fetch(SCRIPT_URL, {
                 method: 'POST',
                 mode: 'no-cors',
@@ -152,16 +161,15 @@
                 body: JSON.stringify(nuevaUbi)
             });
             
-            alert("¡Registro enviado! La tabla se actualizará en unos segundos.");
-            setTimeout(() => location.reload(), 1500); 
+            alert("✅ Registro enviado. Se reflejará en la tabla tras recargar.");
+            setTimeout(() => location.reload(), 1000); 
 
         } catch (error) {
-            alert("Error al guardar. Revisa la consola.");
+            alert("Error al guardar. Verifica la consola (F12).");
             console.error(error);
         }
     }
 
-    // Ejecutar carga al abrir
     window.onload = cargarDatosDesdeGoogle;
 </script>
 
