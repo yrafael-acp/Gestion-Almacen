@@ -42,7 +42,7 @@
 <div class="container-fluid px-3">
     <ul class="nav nav-pills mb-3 justify-content-center" id="pills-tab" role="tablist">
         <li class="nav-item"><button class="nav-link active" id="pills-resumen-tab" data-bs-toggle="pill" data-bs-target="#view-resumen" type="button">RESUMEN</button></li>
-        <li class="nav-item"><button class="nav-link" id="pills-detalle-tab" data-bs-toggle="pill" data-bs-target="#view-detalle" type="button">DETALLE</button></li>
+        <li class="nav-item"><button class="nav-link" id="pills-detalle-tab" data-bs-toggle="pill" data-bs-target="#view-detalle" type="button">DETALLE / EDICIÓN</button></li>
     </ul>
 
     <div class="tab-content" id="pills-tabContent">
@@ -94,18 +94,38 @@
 
         <div class="tab-pane fade" id="view-detalle" role="tabpanel">
             <div class="card p-3 border-0 shadow-sm">
-                <div class="row g-2 mb-3">
-                    <div class="col-md-8"><input type="text" id="searchInput" class="form-control" placeholder="Buscar material o ID..."></div>
-                    <div class="col-md-4 d-flex gap-1">
-                        <button class="btn btn-dark flex-grow-1" onclick="filtrar('TODOS')">TODO</button>
+                <div class="row g-2 mb-3 align-items-end">
+                    <div class="col-md-4">
+                        <label class="fw-bold small text-muted mb-1"><i class="bi bi-layers-half"></i> HOJA A GESTIONAR:</label>
+                        <select class="form-select form-select-sm border-success shadow-sm" id="selectorHoja" onchange="cambiarVistaHoja()">
+                            <option value="UBICACIONES">UBICACIONES (VISTA DASHBOARD)</option>
+                            <option value="HISTORICO UBICACIONES">HISTORICO UBICACIONES</option>
+                            <option value="STOCK">STOCK</option>
+                            <option value="STOCK VARIOS">STOCK VARIOS</option>
+                            <option value="INGRESOS DIARIOS">INGRESOS DIARIOS</option>
+                            <option value="CONSOLIDADO INGRESOS">CONSOLIDADO INGRESOS</option>
+                            <option value="CONSOLIDADO">CONSOLIDADO</option>
+                            <option value="REPOSICIÓN">REPOSICIÓN</option>
+                            <option value="CONSIGNACIÓN">CONSIGNACIÓN</option>
+                            <option value="BACKUP">BACKUP</option>
+                            <option value="productos sin etiquetar">PRODUCTOS SIN ETIQUETAR</option>
+                        </select>
+                    </div>
+                    <div class="col-md-5">
+                        <input type="text" id="searchInput" class="form-control form-control-sm" placeholder="Buscar en esta hoja...">
+                    </div>
+                    <div class="col-md-3 d-flex gap-1">
+                        <button class="btn btn-sm btn-dark flex-grow-1" onclick="filtrar('TODOS')">RESETEAR</button>
                     </div>
                 </div>
+
                 <div class="table-container">
-                    <table class="table table-sm table-hover align-middle mb-0">
-                        <thead class="table-light"><tr><th>ID</th><th>ZONA</th><th>MATERIAL</th><th>ESTADO</th></tr></thead>
+                    <table class="table table-sm table-hover align-middle mb-0" id="mainTable">
+                        <thead class="table-light"><tr><th>Cargando columnas...</th></tr></thead>
                         <tbody id="tableBody"></tbody>
                     </table>
                 </div>
+
                 <div class="d-flex justify-content-between align-items-center mt-3 bg-white p-2 rounded shadow-sm border">
                     <button class="btn btn-sm btn-outline-success fw-bold" id="btnAnterior" onclick="cambiarPagina(-1)">
                         <i class="bi bi-chevron-left"></i> Anterior
@@ -124,10 +144,11 @@
     const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyPTKRi6vDUxH9eIQNwh8XZCZAucg44Dr0TvywARJ64bUcYCVfmkPnk9nsSjf6g5DyxoA/exec';
     let ubicaciones = [];
     let datosFiltrados = [];
+    let dataEdicionRaw = []; // Nueva para almacenar data de otras hojas
     let paginaActual = 1;
     const filasPorPagina = 100;
     let miGrafico = null;
-    let vistaActual = 'GENERAL';
+    let vistaActual = 'GENERAL'; 
 
     async function cargarDatosDesdeGoogle() {
         const overlay = document.getElementById('loader-overlay');
@@ -145,7 +166,9 @@
 
     function actualizarTodo(data) {
         ubicaciones = data;
-        datosFiltrados = data;
+        if (vistaActual === 'GENERAL') {
+            datosFiltrados = data;
+        }
         paginaActual = 1;
 
         const total = data.length;
@@ -161,12 +184,38 @@
         document.getElementById('percOcupado').innerText = total > 0 ? `${((ocupadosTotal/total)*100).toFixed(1)}%` : '0%';
         document.getElementById('percDisponible').innerText = total > 0 ? `${((disponibles/total)*100).toFixed(1)}%` : '0%';
 
-        renderTable();
+        if (vistaActual === 'GENERAL' || vistaActual === 'REPOSICION') renderTable();
         renderGrafico(data);
         generarListaZonas(data);
     }
 
+    // --- FUNCIÓN PARA CAMBIAR ENTRE HOJAS ---
+    function cambiarVistaHoja() {
+        const nombreHoja = document.getElementById('selectorHoja').value;
+        const overlay = document.getElementById('loader-overlay');
+
+        if (nombreHoja === "UBICACIONES") {
+            vistaActual = 'GENERAL';
+            datosFiltrados = ubicaciones;
+            renderTable();
+            return;
+        }
+
+        overlay.style.display = 'flex';
+        // Llamada directa al .gs para traer cualquier hoja
+        google.script.run.withSuccessHandler(data => {
+            dataEdicionRaw = data; 
+            datosFiltrados = data.slice(1); // Quitamos cabecera para filtrar
+            vistaActual = 'EDICION_DINAMICA';
+            paginaActual = 1;
+            renderTableEdicion(nombreHoja, data[0]); // Mandamos nombre y cabeceras
+            overlay.style.display = 'none';
+        }).obtenerDataDirecta(nombreHoja);
+    }
+
     function renderTable() {
+        if (vistaActual === 'EDICION_DINAMICA') return; // Usa su propia función
+
         const tbody = document.getElementById('tableBody');
         const thead = document.querySelector('.table-light');
         const inicio = (paginaActual - 1) * filasPorPagina;
@@ -178,16 +227,7 @@
             thead.innerHTML = `<tr><th>CÓDIGO</th><th>DESCRIPCIÓN</th><th>U.M</th><th>UBI</th><th>MIGRA</th><th>CAP.</th><th>STOCK</th><th>ESTADO</th></tr>`;
             tbody.innerHTML = dataPagina.map(item => {
                 const r = item.datosRepo || [];
-                return `<tr>
-                    <td>${r[0] || '-'}</td>
-                    <td><small>${r[1] || '-'}</small></td>
-                    <td>${r[2] || '-'}</td>
-                    <td><strong>${r[3] || '-'}</strong></td>
-                    <td>${r[6] || '-'}</td>
-                    <td>${r[7] || 0}</td>
-                    <td class="text-danger fw-bold">${r[8] || 0}</td>
-                    <td><span class="status-badge bg-sobrestock">SOBRESTOCK</span></td>
-                </tr>`;
+                return `<tr><td>${r[0] || '-'}</td><td><small>${r[1] || '-'}</small></td><td>${r[2] || '-'}</td><td><strong>${r[3] || '-'}</strong></td><td>${r[6] || '-'}</td><td>${r[7] || 0}</td><td class="text-danger fw-bold">${r[8] || 0}</td><td><span class="status-badge bg-sobrestock">SOBRESTOCK</span></td></tr>`;
             }).join('');
         } else {
             thead.innerHTML = `<tr><th>UBICACIÓN</th><th>ORGANIZADOR</th><th>GRUPO</th><th>SUBGRUPO</th><th>ESTADO</th><th>HISTÓRICO</th></tr>`;
@@ -195,28 +235,57 @@
                 const u = item.datosUbi || [];
                 let badge = item.estado === 'DISPONIBLE' ? 'bg-disponible' : 'bg-ocupado';
                 if(item.estado === 'SOBRESTOCK') badge = 'bg-sobrestock';
-                return `<tr>
-                    <td><strong>${u[0] || '-'}</strong></td>
-                    <td>${u[1] || '-'}</td>
-                    <td><small>${u[2] || '-'}</small></td>
-                    <td><small>${u[3] || '-'}</small></td>
-                    <td><span class="status-badge ${badge}">${item.estado}</span></td>
-                    <td>${u[5] || '-'}</td>
-                </tr>`;
+                return `<tr><td><strong>${u[0] || '-'}</strong></td><td>${u[1] || '-'}</td><td><small>${u[2] || '-'}</small></td><td><small>${u[3] || '-'}</small></td><td><span class="status-badge ${badge}">${item.estado}</span></td><td>${u[5] || '-'}</td></tr>`;
             }).join('');
         }
+        actualizarPaginacion(totalPaginas);
+    }
 
-        document.getElementById('infoPaginacion').innerText = `Página ${paginaActual} de ${totalPaginas || 1}`;
+    // --- RENDER PARA CUALQUIER HOJA EDITABLE ---
+    function renderTableEdicion(nombreHoja, headers) {
+        const tbody = document.getElementById('tableBody');
+        const thead = document.querySelector('.table-light');
+        const inicio = (paginaActual - 1) * filasPorPagina;
+        const fin = inicio + filasPorPagina;
+        const totalPaginas = Math.ceil(datosFiltrados.length / filasPorPagina);
+        const dataPagina = datosFiltrados.slice(inicio, fin);
+
+        thead.innerHTML = `<tr>${headers.map(h => `<th>${h}</th>`).join('')}<th>ACCIONES</th></tr>`;
+
+        tbody.innerHTML = dataPagina.map((fila, i) => {
+            const rowIndex = inicio + i;
+            return `<tr>
+                ${fila.map((celda, colIndex) => `<td><input type="text" class="form-control form-control-sm" value="${celda}" id="cell-${rowIndex}-${colIndex}"></td>`).join('')}
+                <td><button class="btn btn-sm btn-success" onclick="confirmarGuardado('${nombreHoja}', ${rowIndex}, ${fila.length})"><i class="bi bi-floppy"></i></button></td>
+            </tr>`;
+        }).join('');
+        actualizarPaginacion(totalPaginas);
+    }
+
+    function confirmarGuardado(nombre, rowIdx, colCount) {
+        const nuevosValores = [];
+        for(let c=0; c < colCount; c++) {
+            nuevosValores.push(document.getElementById(`cell-${rowIdx}-${c}`).value);
+        }
+        
+        if(!confirm("¿Seguro que deseas guardar los cambios en " + nombre + "?")) return;
+
+        google.script.run.withSuccessHandler(res => {
+            alert(res);
+            cambiarVistaHoja(); // Recargamos la hoja actual
+        }).guardarCambioDinamico(nombre, rowIdx, nuevosValores);
+    }
+
+    function actualizarPaginacion(total) {
+        document.getElementById('infoPaginacion').innerText = `Página ${paginaActual} de ${total || 1}`;
         document.getElementById('btnAnterior').disabled = (paginaActual === 1);
-        document.getElementById('btnSiguiente').disabled = (paginaActual >= totalPaginas || totalPaginas === 0);
+        document.getElementById('btnSiguiente').disabled = (paginaActual >= total || total === 0);
     }
 
     function renderGrafico(data) {
         const ctx = document.getElementById('ctxGrafico');
-        // REGLA: Usamos datosUbi[1] porque es la columna de Organizador/Zona
         const zonas = [...new Set(data.map(u => u.datosUbi ? u.datosUbi[1] : null))].filter(Boolean).sort();
         const dataset = zonas.map(z => data.filter(u => u.datosUbi && u.datosUbi[1] === z && u.estado !== 'DISPONIBLE').length);
-        
         if (miGrafico) miGrafico.destroy();
         miGrafico = new Chart(ctx, {
             type: 'doughnut', 
@@ -227,21 +296,12 @@
 
     function generarListaZonas(data) {
         const container = document.getElementById('resumenZonas');
-        // REGLA: Usamos datosUbi[1] para obtener los nombres de los organizadores
         const zonas = [...new Set(data.map(u => u.datosUbi ? u.datosUbi[1] : null))].filter(Boolean).sort();
-        
         container.innerHTML = '<div class="row row-cols-1 row-cols-md-2 g-2">' + zonas.map(z => {
             const totalZ = data.filter(u => u.datosUbi && u.datosUbi[1] === z).length;
             const dispZ = data.filter(u => u.datosUbi && u.datosUbi[1] === z && u.estado === 'DISPONIBLE').length;
             const pOcu = totalZ > 0 ? (((totalZ - dispZ) / totalZ) * 100).toFixed(0) : 0;
-            return `<div class="col">
-                <div class="p-2 border rounded bg-light small fw-bold">
-                    ${z} <span class="float-end text-success">${dispZ} Libres</span>
-                    <div class="progress" style="height:6px; margin-top:5px;">
-                        <div class="progress-bar bg-success" style="width:${pOcu}%"></div>
-                    </div>
-                </div>
-            </div>`;
+            return `<div class="col"><div class="p-2 border rounded bg-light small fw-bold">${z} <span class="float-end text-success">${dispZ} Libres</span><div class="progress" style="height:6px; margin-top:5px;"><div class="progress-bar bg-success" style="width:${pOcu}%"></div></div></div></div>`;
         }).join('') + '</div>';
     }
 
@@ -249,8 +309,9 @@
         const triggerEl = document.querySelector('#pills-detalle-tab');
         bootstrap.Tab.getOrCreateInstance(triggerEl).show();
         setTimeout(() => {
-            paginaActual = 1;
+            document.getElementById('selectorHoja').value = "UBICACIONES";
             vistaActual = (filtro === 'SOBRESTOCK') ? 'REPOSICION' : 'GENERAL';
+            paginaActual = 1;
             if (filtro === 'TODOS') datosFiltrados = ubicaciones;
             else if (filtro === 'OCUPADOS_FULL') datosFiltrados = ubicaciones.filter(u => u.estado !== 'DISPONIBLE');
             else datosFiltrados = ubicaciones.filter(u => u.estado === filtro);
@@ -258,14 +319,30 @@
         }, 150);
     }
 
-    function cambiarPagina(direccion) { paginaActual += direccion; renderTable(); }
-    function filtrar(tipo) { vistaActual = (tipo === 'SOBRESTOCK') ? 'REPOSICION' : 'GENERAL'; paginaActual = 1; datosFiltrados = (tipo === 'TODOS') ? ubicaciones : ubicaciones.filter(u => u.estado === tipo); renderTable(); }
+    function cambiarPagina(direccion) { 
+        paginaActual += direccion; 
+        if(vistaActual === 'EDICION_DINAMICA') renderTableEdicion(document.getElementById('selectorHoja').value, dataEdicionRaw[0]);
+        else renderTable(); 
+    }
+
+    function filtrar(tipo) { 
+        document.getElementById('selectorHoja').value = "UBICACIONES";
+        vistaActual = (tipo === 'SOBRESTOCK') ? 'REPOSICION' : 'GENERAL'; 
+        paginaActual = 1; 
+        datosFiltrados = (tipo === 'TODOS') ? ubicaciones : ubicaciones.filter(u => u.estado === tipo); 
+        renderTable(); 
+    }
 
     document.getElementById('searchInput').addEventListener('input', (e) => {
         const term = e.target.value.toLowerCase();
         paginaActual = 1;
-        datosFiltrados = ubicaciones.filter(u => (u.id + (u.datosUbi ? u.datosUbi[1] : '')).toLowerCase().includes(term));
-        renderTable();
+        if(vistaActual === 'EDICION_DINAMICA') {
+            datosFiltrados = dataEdicionRaw.slice(1).filter(fila => fila.some(celda => celda.toString().toLowerCase().includes(term)));
+            renderTableEdicion(document.getElementById('selectorHoja').value, dataEdicionRaw[0]);
+        } else {
+            datosFiltrados = ubicaciones.filter(u => (u.id + (u.datosUbi ? u.datosUbi[1] : '')).toLowerCase().includes(term));
+            renderTable();
+        }
     });
 
     window.onload = cargarDatosDesdeGoogle;
