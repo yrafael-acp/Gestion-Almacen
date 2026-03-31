@@ -22,11 +22,9 @@
         .chart-wrapper { flex-grow: 1; position: relative; max-height: 250px; } 
         .info-box { background: white; padding: 15px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); height: 350px; overflow-y: auto; }
         .status-badge { font-size: 0.7rem; padding: 4px 10px; border-radius: 20px; font-weight: bold; }
-        
         .bg-disponible { background-color: #d1e7dd; color: #0f5132; }
         .bg-ocupado { background-color: #cfe2ff; color: #084298; border: 1px solid #b6d4fe; }
         .bg-sobrestock { background-color: #f8d7da; color: #842029; border: 1px solid #f5c2c7; }
-        
         #loader-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: white; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; }
     </style>
 </head>
@@ -149,42 +147,32 @@
             overlay.style.display = 'none';
         } catch (e) { 
             console.error(e); 
-            overlay.innerHTML = '<div class="alert alert-danger m-3">Error de conexión con Cerro Prieto</div>';
+            overlay.innerHTML = '<div class="alert alert-danger m-3">Error de conexión</div>';
         }
     }
 
-   function actualizarTodo(data) {
-    // Guardamos la data completa de la hoja UBICACIONES (Todos los campos)
-    ubicaciones = data;
-    datosFiltrados = data;
-    paginaActual = 1;
+    function actualizarTodo(data) {
+        ubicaciones = data;
+        datosFiltrados = data;
+        paginaActual = 1;
 
-    // --- LÓGICA DE CONTEO: RESTA MACRO PARA OCUPADOS ---
-    const total = data.length; // Los 3772 de tu Excel
-    const disponibles = data.filter(u => u.estado === 'DISPONIBLE').length; // Los 1479
-    const ocupadosTotal = total - disponibles; // Los 2293 (Ocupados + Sobrestock)
-    
-    // Conteo específico para el KPI de alerta roja
-    const sobrestock = data.filter(u => u.estado === 'SOBRESTOCK').length;
+        const total = data.length;
+        const disponibles = data.filter(u => u.estado === 'DISPONIBLE').length;
+        const ocupadosTotal = total - disponibles;
+        const sobrestock = data.filter(u => u.estado === 'SOBRESTOCK').length;
 
-    // --- INYECTAR VALORES EN LOS KPIs (Banners del Resumen) ---
-    document.getElementById('totalUbi').innerText = total;
-    document.getElementById('valDisponible').innerText = disponibles;
-    document.getElementById('valOcupado').innerText = ocupadosTotal;
-    document.getElementById('valSobre').innerText = sobrestock;
+        document.getElementById('totalUbi').innerText = total;
+        document.getElementById('valDisponible').innerText = disponibles;
+        document.getElementById('valOcupado').innerText = ocupadosTotal;
+        document.getElementById('valSobre').innerText = sobrestock;
 
-    // --- CALCULAR Y PINTAR PORCENTAJES ---
-    const pOcu = total > 0 ? ((ocupadosTotal / total) * 100).toFixed(1) : 0;
-    const pLib = total > 0 ? ((disponibles / total) * 100).toFixed(1) : 0;
-    
-    document.getElementById('percOcupado').innerText = `${pOcu}%`;
-    document.getElementById('percDisponible').innerText = `${pLib}%`;
+        document.getElementById('percOcupado').innerText = total > 0 ? `${((ocupadosTotal/total)*100).toFixed(1)}%` : '0%';
+        document.getElementById('percDisponible').innerText = total > 0 ? `${((disponibles/total)*100).toFixed(1)}%` : '0%';
 
-    // --- REFRESCAR COMPONENTES VISUALES ---
-    renderTable(); // Aquí se muestran todos los campos en la tabla
-    renderGrafico(data);
-    generarListaZonas(data);
-}
+        renderTable();
+        renderGrafico(data);
+        generarListaZonas(data);
+    }
 
     function renderTable() {
         const tbody = document.getElementById('tableBody');
@@ -197,7 +185,6 @@
             let badge = 'bg-disponible';
             if(item.estado === 'OCUPADO') badge = 'bg-ocupado';
             if(item.estado === 'SOBRESTOCK') badge = 'bg-sobrestock';
-            
             return `<tr><td><strong>${item.id}</strong></td><td>${item.zona}</td><td><small>${item.material || '-'}</small></td><td><span class="status-badge ${badge}">${item.estado}</span></td></tr>`;
         }).join('');
 
@@ -218,31 +205,25 @@
         renderTable();
     }
 
-    unction irADetalleYFiltrar(filtro) {
-    // 1. Cambiamos de pestaña a DETALLE automáticamente
-    const triggerEl = document.querySelector('#pills-detalle-tab');
-    bootstrap.Tab.getOrCreateInstance(triggerEl).show();
-
-    // 2. Aplicamos el filtro sobre la data completa
-    setTimeout(() => {
-        paginaActual = 1;
-        // Limpiamos el buscador para que no se crucen los filtros
-        const searchInput = document.getElementById('searchInput');
-        if (searchInput) searchInput.value = ''; 
-
-        if (filtro === 'TODOS') {
-            datosFiltrados = ubicaciones; // Muestra todo lo de la hoja
-        } else if (filtro === 'OCUPADOS_FULL') {
-            // Filtro macro para el KPI Ocupado (No Disponibles)
-            datosFiltrados = ubicaciones.filter(u => u.estado !== 'DISPONIBLE');
-        } else {
-            // Filtro específico: DISPONIBLE o SOBRESTOCK
-            datosFiltrados = ubicaciones.filter(u => u.estado === filtro);
-        }
+    function irADetalleYFiltrar(filtro) {
+        const triggerEl = document.querySelector('#pills-detalle-tab');
+        bootstrap.Tab.getOrCreateInstance(triggerEl).show();
         
-        renderTable(); // Redibuja la tabla con el filtro aplicado
-    }, 150);
-}
+        setTimeout(() => {
+            paginaActual = 1;
+            const searchInput = document.getElementById('searchInput');
+            if (searchInput) searchInput.value = ''; 
+
+            if (filtro === 'TODOS') {
+                datosFiltrados = ubicaciones;
+            } else if (filtro === 'OCUPADOS_FULL') {
+                datosFiltrados = ubicaciones.filter(u => u.estado !== 'DISPONIBLE');
+            } else {
+                datosFiltrados = ubicaciones.filter(u => u.estado === filtro);
+            }
+            renderTable();
+        }, 150);
+    }
 
     function renderGrafico(data) {
         const ctx = document.getElementById('ctxGrafico');
