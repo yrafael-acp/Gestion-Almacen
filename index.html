@@ -154,27 +154,36 @@
     }
 
     function actualizarTodo(data) {
-        ubicaciones = data;
-        datosFiltrados = data;
-        paginaActual = 1;
+    ubicaciones = data;
+    datosFiltrados = data;
+    paginaActual = 1;
 
-        const total = data.length;
-        const disponibles = data.filter(u => u.estado === 'DISPONIBLE').length;
-        const ocupadosTotal = total - disponibles;
-        const sobrestock = data.filter(u => u.estado === 'SOBRESTOCK').length;
+    // LÓGICA DE CONTEO: RESTA MACRO PARA OCUPADOS
+    const total = data.length; // 3772
+    const disponibles = data.filter(u => u.estado === 'DISPONIBLE').length; // 1479
+    const ocupadosTotal = total - disponibles; // 2293 (Incluye Ocupados y Sobrestocks)
+    
+    // Conteo específico para el KPI de alerta
+    const sobrestock = data.filter(u => u.estado === 'SOBRESTOCK').length;
 
-        document.getElementById('totalUbi').innerText = total;
-        document.getElementById('valDisponible').innerText = disponibles;
-        document.getElementById('valOcupado').innerText = ocupadosTotal;
-        document.getElementById('valSobre').innerText = sobrestock;
+    // INYECTAR VALORES EN LOS KPIs
+    document.getElementById('totalUbi').innerText = total;
+    document.getElementById('valDisponible').innerText = disponibles;
+    document.getElementById('valOcupado').innerText = ocupadosTotal;
+    document.getElementById('valSobre').innerText = sobrestock;
 
-        document.getElementById('percOcupado').innerText = total > 0 ? `${((ocupadosTotal/total)*100).toFixed(1)}%` : '0%';
-        document.getElementById('percDisponible').innerText = total > 0 ? `${((disponibles/total)*100).toFixed(1)}%` : '0%';
+    // CALCULAR Y PINTAR PORCENTAJES
+    const pOcu = total > 0 ? ((ocupadosTotal / total) * 100).toFixed(1) : 0;
+    const pLib = total > 0 ? ((disponibles / total) * 100).toFixed(1) : 0;
+    
+    document.getElementById('percOcupado').innerText = `${pOcu}%`;
+    document.getElementById('percDisponible').innerText = `${pLib}%`;
 
-        renderTable();
-        renderGrafico(data);
-        generarListaZonas(data);
-    }
+    // REFRESCAR TABLA, GRÁFICO Y LISTA POR ZONAS
+    renderTable();
+    renderGrafico(data);
+    generarListaZonas(data);
+}
 
     function renderTable() {
         const tbody = document.getElementById('tableBody');
