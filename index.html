@@ -127,23 +127,14 @@
     let paginaActual = 1;
     const filasPorPagina = 100;
     let miGrafico = null;
-    let vistaActual = 'GENERAL'; // Variable declarada correctamente
+    let vistaActual = 'GENERAL';
 
     async function cargarDatosDesdeGoogle() {
         const overlay = document.getElementById('loader-overlay');
-        const cache = localStorage.getItem('cache_ubi');
-        if (cache) { 
-            try {
-                ubicaciones = JSON.parse(cache); 
-                actualizarTodo(ubicaciones); 
-                overlay.style.display = 'none'; 
-            } catch(e) { localStorage.removeItem('cache_ubi'); }
-        }
         try {
             const response = await fetch(SCRIPT_URL);
             const freshData = await response.json();
             ubicaciones = freshData;
-            localStorage.setItem('cache_ubi', JSON.stringify(freshData));
             actualizarTodo(freshData);
             overlay.style.display = 'none';
         } catch (e) { 
@@ -178,7 +169,6 @@
     function renderTable() {
         const tbody = document.getElementById('tableBody');
         const thead = document.querySelector('.table-light');
-        
         const inicio = (paginaActual - 1) * filasPorPagina;
         const fin = inicio + filasPorPagina;
         const totalPaginas = Math.ceil(datosFiltrados.length / filasPorPagina);
@@ -221,45 +211,12 @@
         document.getElementById('btnSiguiente').disabled = (paginaActual >= totalPaginas || totalPaginas === 0);
     }
 
-    function cambiarPagina(direccion) {
-        paginaActual += direccion;
-        renderTable();
-        document.querySelector('.table-container').scrollTop = 0;
-    }
-
-    function filtrar(tipo) {
-        paginaActual = 1;
-        vistaActual = (tipo === 'SOBRESTOCK') ? 'REPOSICION' : 'GENERAL';
-        datosFiltrados = (tipo === 'TODOS') ? ubicaciones : ubicaciones.filter(u => u.estado === tipo);
-        renderTable();
-    }
-
-    function irADetalleYFiltrar(filtro) {
-        const triggerEl = document.querySelector('#pills-detalle-tab');
-        bootstrap.Tab.getOrCreateInstance(triggerEl).show();
-        
-        setTimeout(() => {
-            paginaActual = 1;
-            const searchInput = document.getElementById('searchInput');
-            if (searchInput) searchInput.value = ''; 
-
-            vistaActual = (filtro === 'SOBRESTOCK') ? 'REPOSICION' : 'GENERAL';
-
-            if (filtro === 'TODOS') {
-                datosFiltrados = ubicaciones;
-            } else if (filtro === 'OCUPADOS_FULL') {
-                datosFiltrados = ubicaciones.filter(u => u.estado !== 'DISPONIBLE');
-            } else {
-                datosFiltrados = ubicaciones.filter(u => u.estado === filtro);
-            }
-            renderTable();
-        }, 150);
-    }
-
     function renderGrafico(data) {
         const ctx = document.getElementById('ctxGrafico');
-        const zonas = [...new Set(data.map(u => u.zona))].sort();
-        const dataset = zonas.map(z => data.filter(u => u.zona === z && u.estado !== 'DISPONIBLE').length);
+        // REGLA: Usamos datosUbi[1] porque es la columna de Organizador/Zona
+        const zonas = [...new Set(data.map(u => u.datosUbi ? u.datosUbi[1] : null))].filter(Boolean).sort();
+        const dataset = zonas.map(z => data.filter(u => u.datosUbi && u.datosUbi[1] === z && u.estado !== 'DISPONIBLE').length);
+        
         if (miGrafico) miGrafico.destroy();
         miGrafico = new Chart(ctx, {
             type: 'doughnut', 
@@ -270,19 +227,44 @@
 
     function generarListaZonas(data) {
         const container = document.getElementById('resumenZonas');
-        const zonas = [...new Set(data.map(u => u.zona))].sort();
+        // REGLA: Usamos datosUbi[1] para obtener los nombres de los organizadores
+        const zonas = [...new Set(data.map(u => u.datosUbi ? u.datosUbi[1] : null))].filter(Boolean).sort();
+        
         container.innerHTML = '<div class="row row-cols-1 row-cols-md-2 g-2">' + zonas.map(z => {
-            const totalZ = data.filter(u => u.zona === z).length;
-            const dispZ = data.filter(u => u.zona === z && u.estado === 'DISPONIBLE').length;
-            const pOcup = totalZ > 0 ? (((totalZ - dispZ) / totalZ) * 100).toFixed(0) : 0;
-            return `<div class="col"><div class="p-2 border rounded bg-light small fw-bold">${z}<span class="float-end text-success">${dispZ} Libres</span><div class="progress" style="height:6px; margin-top:5px;"><div class="progress-bar bg-success" style="width:${pOcup}%"></div></div></div></div>`;
+            const totalZ = data.filter(u => u.datosUbi && u.datosUbi[1] === z).length;
+            const dispZ = data.filter(u => u.datosUbi && u.datosUbi[1] === z && u.estado === 'DISPONIBLE').length;
+            const pOcu = totalZ > 0 ? (((totalZ - dispZ) / totalZ) * 100).toFixed(0) : 0;
+            return `<div class="col">
+                <div class="p-2 border rounded bg-light small fw-bold">
+                    ${z} <span class="float-end text-success">${dispZ} Libres</span>
+                    <div class="progress" style="height:6px; margin-top:5px;">
+                        <div class="progress-bar bg-success" style="width:${pOcu}%"></div>
+                    </div>
+                </div>
+            </div>`;
         }).join('') + '</div>';
     }
+
+    function irADetalleYFiltrar(filtro) {
+        const triggerEl = document.querySelector('#pills-detalle-tab');
+        bootstrap.Tab.getOrCreateInstance(triggerEl).show();
+        setTimeout(() => {
+            paginaActual = 1;
+            vistaActual = (filtro === 'SOBRESTOCK') ? 'REPOSICION' : 'GENERAL';
+            if (filtro === 'TODOS') datosFiltrados = ubicaciones;
+            else if (filtro === 'OCUPADOS_FULL') datosFiltrados = ubicaciones.filter(u => u.estado !== 'DISPONIBLE');
+            else datosFiltrados = ubicaciones.filter(u => u.estado === filtro);
+            renderTable();
+        }, 150);
+    }
+
+    function cambiarPagina(direccion) { paginaActual += direccion; renderTable(); }
+    function filtrar(tipo) { vistaActual = (tipo === 'SOBRESTOCK') ? 'REPOSICION' : 'GENERAL'; paginaActual = 1; datosFiltrados = (tipo === 'TODOS') ? ubicaciones : ubicaciones.filter(u => u.estado === tipo); renderTable(); }
 
     document.getElementById('searchInput').addEventListener('input', (e) => {
         const term = e.target.value.toLowerCase();
         paginaActual = 1;
-        datosFiltrados = ubicaciones.filter(u => (u.id + u.zona).toLowerCase().includes(term));
+        datosFiltrados = ubicaciones.filter(u => (u.id + (u.datosUbi ? u.datosUbi[1] : '')).toLowerCase().includes(term));
         renderTable();
     });
 
