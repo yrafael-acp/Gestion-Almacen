@@ -174,24 +174,56 @@
         generarListaZonas(data);
     }
 
-    function renderTable() {
-        const tbody = document.getElementById('tableBody');
-        const inicio = (paginaActual - 1) * filasPorPagina;
-        const fin = inicio + filasPorPagina;
-        const totalPaginas = Math.ceil(datosFiltrados.length / filasPorPagina);
-        const dataPagina = datosFiltrados.slice(inicio, fin);
+   function renderTable() {
+    const tbody = document.getElementById('tableBody');
+    const thead = document.querySelector('.table-light');
+    
+    const inicio = (paginaActual - 1) * filasPorPagina;
+    const fin = inicio + filasPorPagina;
+    const totalPaginas = Math.ceil(datosFiltrados.length / filasPorPagina);
+    const dataPagina = datosFiltrados.slice(inicio, fin);
+
+    if (vistaActual === 'REPOSICION') {
+        // CABECERA COMPLETA DE REPOSICIÓN (Según tu imagen)
+        thead.innerHTML = `<tr><th>CÓDIGO</th><th>DESCRIPCIÓN</th><th>U.M</th><th>UBI</th><th>MIGRA</th><th>CAP.</th><th>STOCK</th><th>ESTADO</th></tr>`;
         
         tbody.innerHTML = dataPagina.map(item => {
-            let badge = 'bg-disponible';
-            if(item.estado === 'OCUPADO') badge = 'bg-ocupado';
-            if(item.estado === 'SOBRESTOCK') badge = 'bg-sobrestock';
-            return `<tr><td><strong>${item.id}</strong></td><td>${item.zona}</td><td><small>${item.material || '-'}</small></td><td><span class="status-badge ${badge}">${item.estado}</span></td></tr>`;
+            const r = item.datosRepo || [];
+            return `<tr>
+                <td>${r[0] || '-'}</td>
+                <td><small>${r[1] || '-'}</small></td>
+                <td>${r[2] || '-'}</td>
+                <td><strong>${r[3] || '-'}</strong></td>
+                <td>${r[6] || '-'}</td>
+                <td>${r[7] || 0}</td>
+                <td class="text-danger fw-bold">${r[8] || 0}</td>
+                <td><span class="status-badge bg-sobrestock">SOBRESTOCK</span></td>
+            </tr>`;
         }).join('');
+    } else {
+        // CABECERA COMPLETA DE UBICACIONES (Según tu imagen)
+        thead.innerHTML = `<tr><th>UBICACIÓN</th><th>ORGANIZADOR</th><th>GRUPO</th><th>SUBGRUPO</th><th>ESTADO</th><th>HISTÓRICO</th></tr>`;
+        
+        tbody.innerHTML = dataPagina.map(item => {
+            const u = item.datosUbi || [];
+            let badge = item.estado === 'DISPONIBLE' ? 'bg-disponible' : 'bg-ocupado';
+            if(item.estado === 'SOBRESTOCK') badge = 'bg-sobrestock';
 
-        document.getElementById('infoPaginacion').innerText = `Página ${paginaActual} de ${totalPaginas || 1}`;
-        document.getElementById('btnAnterior').disabled = (paginaActual === 1);
-        document.getElementById('btnSiguiente').disabled = (paginaActual >= totalPaginas || totalPaginas === 0);
+            return `<tr>
+                <td><strong>${u[0]}</strong></td>
+                <td>${u[1]}</td>
+                <td><small>${u[2]}</small></td>
+                <td><small>${u[3]}</small></td>
+                <td><span class="status-badge ${badge}">${item.estado}</span></td>
+                <td>${u[5] || '-'}</td>
+            </tr>`;
+        }).join('');
     }
+
+    document.getElementById('infoPaginacion').innerText = `Página ${paginaActual} de ${totalPaginas || 1}`;
+    document.getElementById('btnAnterior').disabled = (paginaActual === 1);
+    document.getElementById('btnSiguiente').disabled = (paginaActual >= totalPaginas || totalPaginas === 0);
+}
 
     function cambiarPagina(direccion) {
         paginaActual += direccion;
