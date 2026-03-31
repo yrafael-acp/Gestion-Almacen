@@ -332,18 +332,45 @@
         datosFiltrados = (tipo === 'TODOS') ? ubicaciones : ubicaciones.filter(u => u.estado === tipo); 
         renderTable(); 
     }
+// BUSCADOR INTELIGENTE POR VISTA
+document.getElementById('searchInput').addEventListener('input', (e) => {
+    const term = e.target.value.toLowerCase();
+    paginaActual = 1;
+    
+    if(vistaActual === 'EDICION_DINAMICA') {
+        // Busca en cualquier columna de la hoja seleccionada
+        datosFiltrados = dataEdicionRaw.slice(1).filter(fila => 
+            fila.some(celda => celda.toString().toLowerCase().includes(term))
+        );
+        renderTableEdicion(document.getElementById('selectorHoja').value, dataEdicionRaw[0]);
+    } else {
+        // Busca en ID y Organizador del Dashboard
+        datosFiltrados = ubicaciones.filter(u => 
+            (u.id + (u.datosUbi ? u.datosUbi[1] : '')).toLowerCase().includes(term)
+        );
+        renderTable();
+    }
+});
 
-    document.getElementById('searchInput').addEventListener('input', (e) => {
-        const term = e.target.value.toLowerCase();
-        paginaActual = 1;
-        if(vistaActual === 'EDICION_DINAMICA') {
-            datosFiltrados = dataEdicionRaw.slice(1).filter(fila => fila.some(celda => celda.toString().toLowerCase().includes(term)));
-            renderTableEdicion(document.getElementById('selectorHoja').value, dataEdicionRaw[0]);
-        } else {
-            datosFiltrados = ubicaciones.filter(u => (u.id + (u.datosUbi ? u.datosUbi[1] : '')).toLowerCase().includes(term));
-            renderTable();
-        }
-    });
+// NAVEGACIÓN ENTRE PÁGINAS
+function cambiarPagina(direccion) { 
+    paginaActual += direccion; 
+    if(vistaActual === 'EDICION_DINAMICA') {
+        renderTableEdicion(document.getElementById('selectorHoja').value, dataEdicionRaw[0]);
+    } else {
+        renderTable(); 
+    }
+    document.querySelector('.table-container').scrollTop = 0;
+}
+
+// RESET DE VISTA
+function filtrar(tipo) { 
+    document.getElementById('selectorHoja').value = "UBICACIONES";
+    vistaActual = (tipo === 'TODOS' || tipo === 'GENERAL') ? 'GENERAL' : (tipo === 'SOBRESTOCK' ? 'REPOSICION' : 'GENERAL'); 
+    paginaActual = 1; 
+    datosFiltrados = (tipo === 'TODOS') ? ubicaciones : ubicaciones.filter(u => u.estado === tipo); 
+    renderTable(); 
+}
 
     window.onload = cargarDatosDesdeGoogle;
 </script>
