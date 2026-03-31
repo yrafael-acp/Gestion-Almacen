@@ -153,34 +153,35 @@
         }
     }
 
-    function actualizarTodo(data) {
+   function actualizarTodo(data) {
+    // Guardamos la data completa de la hoja UBICACIONES (Todos los campos)
     ubicaciones = data;
     datosFiltrados = data;
     paginaActual = 1;
 
-    // LÓGICA DE CONTEO: RESTA MACRO PARA OCUPADOS
-    const total = data.length; // 3772
-    const disponibles = data.filter(u => u.estado === 'DISPONIBLE').length; // 1479
-    const ocupadosTotal = total - disponibles; // 2293 (Incluye Ocupados y Sobrestocks)
+    // --- LÓGICA DE CONTEO: RESTA MACRO PARA OCUPADOS ---
+    const total = data.length; // Los 3772 de tu Excel
+    const disponibles = data.filter(u => u.estado === 'DISPONIBLE').length; // Los 1479
+    const ocupadosTotal = total - disponibles; // Los 2293 (Ocupados + Sobrestock)
     
-    // Conteo específico para el KPI de alerta
+    // Conteo específico para el KPI de alerta roja
     const sobrestock = data.filter(u => u.estado === 'SOBRESTOCK').length;
 
-    // INYECTAR VALORES EN LOS KPIs
+    // --- INYECTAR VALORES EN LOS KPIs (Banners del Resumen) ---
     document.getElementById('totalUbi').innerText = total;
     document.getElementById('valDisponible').innerText = disponibles;
     document.getElementById('valOcupado').innerText = ocupadosTotal;
     document.getElementById('valSobre').innerText = sobrestock;
 
-    // CALCULAR Y PINTAR PORCENTAJES
+    // --- CALCULAR Y PINTAR PORCENTAJES ---
     const pOcu = total > 0 ? ((ocupadosTotal / total) * 100).toFixed(1) : 0;
     const pLib = total > 0 ? ((disponibles / total) * 100).toFixed(1) : 0;
     
     document.getElementById('percOcupado').innerText = `${pOcu}%`;
     document.getElementById('percDisponible').innerText = `${pLib}%`;
 
-    // REFRESCAR TABLA, GRÁFICO Y LISTA POR ZONAS
-    renderTable();
+    // --- REFRESCAR COMPONENTES VISUALES ---
+    renderTable(); // Aquí se muestran todos los campos en la tabla
     renderGrafico(data);
     generarListaZonas(data);
 }
@@ -217,21 +218,31 @@
         renderTable();
     }
 
-    function irADetalleYFiltrar(filtro) {
-        const triggerEl = document.querySelector('#pills-detalle-tab');
-        bootstrap.Tab.getOrCreateInstance(triggerEl).show();
-        setTimeout(() => {
-            paginaActual = 1;
-            if (filtro === 'TODOS') {
-                datosFiltrados = ubicaciones;
-            } else if (filtro === 'OCUPADOS_FULL') {
-                datosFiltrados = ubicaciones.filter(u => u.estado !== 'DISPONIBLE');
-            } else {
-                datosFiltrados = ubicaciones.filter(u => u.estado === filtro);
-            }
-            renderTable();
-        }, 150);
-    }
+    unction irADetalleYFiltrar(filtro) {
+    // 1. Cambiamos de pestaña a DETALLE automáticamente
+    const triggerEl = document.querySelector('#pills-detalle-tab');
+    bootstrap.Tab.getOrCreateInstance(triggerEl).show();
+
+    // 2. Aplicamos el filtro sobre la data completa
+    setTimeout(() => {
+        paginaActual = 1;
+        // Limpiamos el buscador para que no se crucen los filtros
+        const searchInput = document.getElementById('searchInput');
+        if (searchInput) searchInput.value = ''; 
+
+        if (filtro === 'TODOS') {
+            datosFiltrados = ubicaciones; // Muestra todo lo de la hoja
+        } else if (filtro === 'OCUPADOS_FULL') {
+            // Filtro macro para el KPI Ocupado (No Disponibles)
+            datosFiltrados = ubicaciones.filter(u => u.estado !== 'DISPONIBLE');
+        } else {
+            // Filtro específico: DISPONIBLE o SOBRESTOCK
+            datosFiltrados = ubicaciones.filter(u => u.estado === filtro);
+        }
+        
+        renderTable(); // Redibuja la tabla con el filtro aplicado
+    }, 150);
+}
 
     function renderGrafico(data) {
         const ctx = document.getElementById('ctxGrafico');
