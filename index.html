@@ -84,14 +84,20 @@
                     <div class="col-md-3">
                         <label class="fw-bold small mb-1">HOJA SELECCIONADA:</label>
                         <select class="form-select form-select-sm" id="selectorHoja" onchange="cambiarVistaHoja()">
-                            <option value="UBICACIONES">UBICACIONES</option>
-                            <option value="CONSOLIDADO INGRESOS">CONSOLIDADO INGRESOS</option>
-                            <option value="ETIQUETAR">ETIQUETAR</option>
-                            <option value="FORMATO DE ETIQUETA">FORMATO DE ETIQUETA</option>
-                            <option value="STOCK">STOCK</option>
-                            <option value="REPOSICIÓN">REPOSICIÓN</option>
-                            <option value="MASIVO_UBICACIONES">MASIVO_UBICACIONES</option>
-                        </select>
+    <option value="UBICACIONES">📍 UBICACIONES</option>
+    <option value="STOCK">📦 STOCK</option>
+    <option value="REPOSICIÓN">🔄 REPOSICIÓN</option>
+    <option value="CONSOLIDADO INGRESOS">📑 CONSOLIDADO INGRESOS</option>
+    <option value="ETIQUETAR">🏷️ ETIQUETAR</option>
+    <option value="FORMATO DE ETIQUETA">🖨️ FORMATO DE ETIQUETA</option>
+    <option value="MASIVO_UBICACIONES">📤 MASIVO UBICACIONES</option>
+    <option value="HISTORICO UBICACIONES">📜 HISTÓRICO</option>
+    <option value="INGRESOS DIARIOS">📅 INGRESOS DIARIOS</option>
+    <option value="STOCK VARIOS">🖇️ STOCK VARIOS</option>
+    <option value="productos sin etiquetar">⚠️ SIN ETIQUETA</option>
+    <option value="CONSIGNACIÓN">🤝 CONSIGNACIÓN</option>
+    <option value="BACKUP">💾 BACKUP</option>
+</select>
                     </div>
                     <div class="col-md-4"><input type="text" id="searchInput" class="form-control form-control-sm" placeholder="Buscar en esta hoja..."></div>
                     <div class="col-md-5 d-flex gap-1">
@@ -161,29 +167,46 @@
             })[nombreFuncion](...params);
     }
 
-    // --- GESTIÓN DE TABLAS Y VISTAS ---
-    function cambiarVistaHoja() {
-        const hoja = document.getElementById('selectorHoja').value;
-        const btnNueva = document.getElementById('btnNuevaFila');
-        paginaActual = 1;
-        showLoader(true);
+function cambiarVistaHoja() {
+    const hoja = document.getElementById('selectorHoja').value;
+    const btnNueva = document.getElementById('btnNuevaFila');
+    paginaActual = 1;
+    
+    showLoader(true); // Bloqueamos la pantalla con el spinner verde
 
+    // Usamos setTimeout(0) para forzar al navegador a mostrar el loader antes de la petición
+    setTimeout(() => {
         if (hoja === "UBICACIONES") {
             vistaActual = 'GENERAL'; 
             btnNueva.style.display = 'none';
-            cargarDatosDesdeGoogle(); // Refresca KPIs también
+            // Cargamos KPIs y tabla principal
+            cargarDatosDesdeGoogle(); 
         } else {
-            google.script.run.withSuccessHandler(data => {
-                headersEdicion = data[0];
-                dataEdicionRaw = data.slice(1);
-                datosFiltrados = dataEdicionRaw;
-                vistaActual = 'EDICION'; 
-                btnNueva.style.display = 'block';
-                renderTableEdicion();
-                showLoader(false);
-            }).obtenerDataDirecta(hoja);
+            google.script.run
+                .withSuccessHandler(data => {
+                    if (!data || data.length === 0) {
+                        alert("La hoja está vacía o no existe.");
+                        showLoader(false);
+                        return;
+                    }
+                    headersEdicion = data[0];
+                    dataEdicionRaw = data.slice(1);
+                    datosFiltrados = dataEdicionRaw;
+                    vistaActual = 'EDICION'; 
+                    btnNueva.style.display = 'block';
+                    
+                    // Renderizado optimizado
+                    renderTableEdicion();
+                    showLoader(false);
+                })
+                .withFailureHandler(err => {
+                    showLoader(false);
+                    alert("Error al cargar: " + err);
+                })
+                .obtenerDataDirecta(hoja);
         }
-    }
+    }, 50); 
+}
 
     function renderTable() {
         const head = document.getElementById('tableHead');
@@ -198,23 +221,43 @@
     }
 
     function renderTableEdicion() {
-        const head = document.getElementById('tableHead');
-        const body = document.getElementById('tableBody');
-        head.innerHTML = `<tr>${headersEdicion.map(h => `<th>${h}</th>`).join('')}<th>ACCIONES</th></tr>`;
-        const dataPag = paginate(datosFiltrados);
-        body.innerHTML = dataPag.map((fila, i) => {
-            const realIdx = ((paginaActual - 1) * filasPorPagina) + i;
-            return `<tr>
-                ${fila.map((c, ci) => `<td><input type="text" class="form-control form-control-sm" style="min-width:100px" value="${c}" id="edit-${realIdx}-${ci}"></td>`).join('')}
-                <td>
-                    <div class="d-flex gap-1">
-                        <button class="btn btn-sm btn-success" onclick="guardarFila(${realIdx})"><i class="bi bi-floppy"></i></button>
-                        <button class="btn btn-sm btn-danger" onclick="borrarFila(${realIdx})"><i class="bi bi-trash"></i></button>
-                    </div>
-                </td>
-            </tr>`;
-        }).join('');
-    }
+    const head = document.getElementById('tableHead');
+    const body = document.getElementById('tableBody');
+    
+    // Limpiamos contenido previo para liberar memoria
+    head.innerHTML = "";
+    body.innerHTML = "";
+
+    // Construir cabecera
+    const trHead = document.createElement('tr');
+    headersEdicion.forEach(h => {
+        const th = document.createElement('th');
+        th.innerText = h;
+        trHead.appendChild(th);
+    });
+    const thAccion = document.createElement('th');
+    thAccion.innerText = "ACCIONES";
+    trHead.appendChild(thAccion);
+    head.appendChild(trHead);
+
+    // Paginación real: solo procesamos 50 filas, así no se cuelga
+    const dataPag = paginate(datosFiltrados);
+    
+    let htmlRows = "";
+    dataPag.forEach((fila, i) => {
+        const realIdx = ((paginaActual - 1) * filasPorPagina) + i;
+        htmlRows += `<tr>
+            ${fila.map((c, ci) => `<td><input type="text" class="form-control form-control-sm" value="${c}" id="edit-${realIdx}-${ci}"></td>`).join('')}
+            <td>
+                <div class="d-flex gap-1">
+                    <button class="btn btn-sm btn-success" onclick="guardarFila(${realIdx})"><i class="bi bi-floppy"></i></button>
+                    <button class="btn btn-sm btn-danger" onclick="borrarFila(${realIdx})"><i class="bi bi-trash"></i></button>
+                </div>
+            </td>
+        </tr>`;
+    });
+    body.innerHTML = htmlRows;
+}
 
     function guardarFila(idx) {
         const hoja = document.getElementById('selectorHoja').value;
