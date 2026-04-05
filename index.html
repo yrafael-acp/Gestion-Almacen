@@ -178,41 +178,63 @@
 
     // --- CAMBIO DE HOJA OPTIMIZADO ---
     function cambiarVistaHoja() {
-        const hoja = document.getElementById('selectorHoja').value;
-        const btnNueva = document.getElementById('btnNuevaFila');
-        paginaActual = 1;
-        
-        showLoader(true);
+    const hoja = document.getElementById('selectorHoja').value;
+    const btnNueva = document.getElementById('btnNuevaFila');
+    
+    // 1. Identificar botones especiales (como el de Limpiar con Omisiones)
+    // Usamos el texto del botón o un ID si se lo pusiste
+    const btnOmisiones = Array.from(document.querySelectorAll('button')).find(el => el.textContent.includes('OMISIONES'));
+    
+    paginaActual = 1;
+    showLoader(true);
 
-        setTimeout(() => {
-            if (hoja === "UBICACIONES") {
-                vistaActual = 'GENERAL'; 
-                btnNueva.style.display = 'none';
-                cargarDatosDesdeGoogle(); 
-            } else {
-                google.script.run
-                    .withSuccessHandler(data => {
-                        if (!data || data.length === 0) {
-                            alert("La hoja está vacía o no existe.");
-                            showLoader(false);
-                            return;
-                        }
-                        headersEdicion = data[0];
-                        dataEdicionRaw = data.slice(1);
-                        datosFiltrados = dataEdicionRaw;
-                        vistaActual = 'EDICION'; 
-                        btnNueva.style.display = 'block';
-                        renderTableEdicion();
-                        showLoader(false);
-                    })
-                    .withFailureHandler(err => {
-                        showLoader(false);
-                        alert("Error al cargar: " + err);
-                    })
-                    .obtenerDataDirecta(hoja);
-            }
-        }, 50); 
+    // Ajuste de interfaz inmediato antes de la petición pesada
+    if (hoja === "ETIQUETAR") {
+        if (btnOmisiones) btnOmisiones.style.display = 'inline-block';
+    } else {
+        if (btnOmisiones) btnOmisiones.style.display = 'none';
     }
+
+    setTimeout(() => {
+        if (hoja === "UBICACIONES") {
+            vistaActual = 'GENERAL'; 
+            btnNueva.style.display = 'none';
+            // Importante: cargarDatosDesdeGoogle debe tener su propio showLoader(false) al terminar
+            cargarDatosDesdeGoogle(); 
+        } else {
+            google.script.run
+                .withSuccessHandler(data => {
+                    // SEGURO 1: Validar que la data sea un array real
+                    if (!data || !Array.isArray(data) || data.length === 0) {
+                        alert("La hoja '" + hoja + "' está vacía o no tiene el formato correcto.");
+                        showLoader(false);
+                        return;
+                    }
+
+                    // SEGURO 2: Verificar si el servidor mandó un error camuflado
+                    if (data[0][0] && data[0][0].toString().includes("Error")) {
+                        alert(data[0][0]);
+                        showLoader(false);
+                        return;
+                    }
+
+                    headersEdicion = data[0];
+                    dataEdicionRaw = data.slice(1);
+                    datosFiltrados = dataEdicionRaw;
+                    vistaActual = 'EDICION'; 
+                    btnNueva.style.display = 'block';
+                    
+                    renderTableEdicion();
+                    showLoader(false); // Apagar loader tras renderizar
+                })
+                .withFailureHandler(err => {
+                    showLoader(false);
+                    alert("Falla crítica de comunicación con Google Sheets: " + err);
+                })
+                .obtenerDataDirecta(hoja);
+        }
+    }, 100); // Un pelín más de tiempo para que el navegador respire
+}
 
     function renderTable() {
         const head = document.getElementById('tableHead');
