@@ -8,20 +8,22 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
+        :root { --cp-verde: #1a5928; --cp-amarillo: #f9ca24; }
         body { background-color: #f0f2f5; font-family: 'Segoe UI', sans-serif; overflow-x: hidden; }
-        .navbar { background-color: #1a5928; border-bottom: 4px solid #f9ca24; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .navbar { background-color: var(--cp-verde); border-bottom: 4px solid var(--cp-amarillo); box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
         .kpi-card { border: none; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); transition: transform 0.2s; height: 100%; cursor: pointer; }
         .kpi-card:hover { transform: scale(1.03); }
         .kpi-title { font-size: 0.65rem; font-weight: 700; text-transform: uppercase; color: #6c757d; }
         .kpi-value { font-size: 1.5rem; font-weight: 800; margin: 2px 0; }
-        .nav-link { color: #1a5928; font-weight: 600; border: 1px solid #1a5928; margin: 0 5px; }
-        .nav-pills .nav-link.active { background-color: #1a5928; color: white; }
-        .table-container { height: 450px; overflow-y: auto; border: 1px solid #dee2e6; background: white; border-radius: 10px; }
+        .nav-link { color: var(--cp-verde); font-weight: 600; border: 1px solid var(--cp-verde); margin: 0 5px; }
+        .nav-pills .nav-link.active { background-color: var(--cp-verde); color: white; }
+        .table-container { height: 400px; overflow-y: auto; border: 1px solid #dee2e6; background: white; border-radius: 10px; }
         thead { position: sticky; top: 0; background-color: #f8f9fa; z-index: 10; }
         .status-badge { font-size: 0.7rem; padding: 4px 10px; border-radius: 20px; font-weight: bold; }
         .bg-disponible { background-color: #d1e7dd; color: #0f5132; }
         .bg-ocupado { background-color: #cfe2ff; color: #084298; }
         .bg-sobrestock { background-color: #f8d7da; color: #842029; }
+        .btn-group-custom .btn { font-size: 0.7rem; font-weight: bold; }
         #loader-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.9); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; }
     </style>
 </head>
@@ -38,42 +40,24 @@
 
 <div class="container-fluid px-3">
     <ul class="nav nav-pills mb-3 justify-content-center" id="pills-tab" role="tablist">
-        <li class="nav-item">
-            <button class="nav-link active" id="btn-resumen" data-bs-toggle="pill" data-bs-target="#view-resumen" type="button" role="tab">RESUMEN</button>
-        </li>
-        <li class="nav-item">
-            <button class="nav-link" id="btn-detalle" data-bs-toggle="pill" data-bs-target="#view-detalle" type="button" role="tab">DETALLE / EDICIÓN</button>
-        </li>
+        <li class="nav-item"><button class="nav-link active" id="btn-resumen" data-bs-toggle="pill" data-bs-target="#view-resumen" type="button">RESUMEN</button></li>
+        <li class="nav-item"><button class="nav-link" id="btn-detalle" data-bs-toggle="pill" data-bs-target="#view-detalle" type="button">DETALLE / EDICIÓN</button></li>
     </ul>
 
     <div class="tab-content" id="pills-tabContent">
         <div class="tab-pane fade show active" id="view-resumen" role="tabpanel">
             <div class="row g-2 mb-3 text-center">
                 <div class="col" onclick="irADetalleYFiltrar('TODOS')">
-                    <div class="card kpi-card p-2 border-start border-dark border-4 shadow-sm">
-                        <span class="kpi-title">Capacidad</span>
-                        <div class="kpi-value" id="totalUbi">0</div>
-                    </div>
+                    <div class="card kpi-card p-2 border-start border-dark border-4"><span class="kpi-title">Capacidad</span><div class="kpi-value" id="totalUbi">0</div></div>
                 </div>
                 <div class="col" onclick="irADetalleYFiltrar('OCUPADOS_FULL')">
-                    <div class="card kpi-card p-2 border-start border-primary border-4 shadow-sm">
-                        <span class="kpi-title">Ocupado</span>
-                        <div class="kpi-value text-primary" id="valOcupado">0</div>
-                        <span id="percOcupado" class="fw-bold small text-primary">0%</span>
-                    </div>
+                    <div class="card kpi-card p-2 border-start border-primary border-4"><span class="kpi-title">Ocupado</span><div class="kpi-value text-primary" id="valOcupado">0</div><span id="percOcupado" class="fw-bold small text-primary">0%</span></div>
                 </div>
                 <div class="col" onclick="irADetalleYFiltrar('SOBRESTOCK')">
-                    <div class="card kpi-card p-2 border-start border-danger border-4 shadow-sm">
-                        <span class="kpi-title">Sobrestock</span>
-                        <div class="kpi-value text-danger" id="valSobre">0</div>
-                    </div>
+                    <div class="card kpi-card p-2 border-start border-danger border-4"><span class="kpi-title">Sobrestock</span><div class="kpi-value text-danger" id="valSobre">0</div></div>
                 </div>
                 <div class="col" onclick="irADetalleYFiltrar('DISPONIBLE')">
-                    <div class="card kpi-card p-2 border-start border-success border-4 shadow-sm">
-                        <span class="kpi-title">Libre</span>
-                        <div class="kpi-value text-success" id="valDisponible">0</div>
-                        <span id="percDisponible" class="fw-bold small text-success">0%</span>
-                    </div>
+                    <div class="card kpi-card p-2 border-start border-success border-4"><span class="kpi-title">Libre</span><div class="kpi-value text-success" id="valDisponible">0</div><span id="percDisponible" class="fw-bold small text-success">0%</span></div>
                 </div>
             </div>
             <div class="row g-3">
@@ -83,26 +67,36 @@
         </div>
 
         <div class="tab-pane fade" id="view-detalle" role="tabpanel">
+            <div class="card p-2 mb-3 border-0 shadow-sm bg-white">
+                <div class="d-flex flex-wrap gap-2 justify-content-center btn-group-custom">
+                    <button class="btn btn-outline-danger" onclick="ejecutarAccion('limpiarRangoGeneral', [document.getElementById('selectorHoja').value])"><i class="bi bi-eraser"></i> LIMPIAR A:H</button>
+                    <button class="btn btn-outline-danger" onclick="ejecutarAccion('limpiarConOmisiones', [document.getElementById('selectorHoja').value])"><i class="bi bi-scissors"></i> LIMPIAR CON OMISIONES</button>
+                    <button class="btn btn-outline-primary" onclick="ejecutarAccion('transferirConsolidadoAEtiquetar')"><i class="bi bi-arrow-right-circle"></i> CONSOLIDADO -> ETIQUETAR</button>
+                    <button class="btn btn-outline-primary" onclick="ejecutarAccion('copiarEtiquetasAMasivo')"><i class="bi bi-box-arrow-in-down"></i> ETIQUETAR -> MASIVO</button>
+                    <button class="btn btn-outline-success" onclick="ejecutarAccion('generarFormatoEtiqueta')"><i class="bi bi-printer"></i> FORMATO ETIQUETA</button>
+                    <button class="btn btn-outline-dark" onclick="ejecutarAccion('actualizarTablasDinamicas')"><i class="bi bi-arrow-clockwise"></i> REFRESCAR PIVOTS</button>
+                    <button class="btn btn-outline-warning text-dark" onclick="ejecutarAccion('filtrarSinStock')"><i class="bi bi-filter-square"></i> FILTRAR SIN STOCK</button>
+                </div>
+            </div>
+
             <div class="card p-3 shadow-sm border-0">
                 <div class="row g-2 mb-3 align-items-end">
                     <div class="col-md-3">
-                        <label class="fw-bold small mb-1">HOJA:</label>
+                        <label class="fw-bold small mb-1">HOJA SELECCIONADA:</label>
                         <select class="form-select form-select-sm" id="selectorHoja" onchange="cambiarVistaHoja()">
                             <option value="UBICACIONES">UBICACIONES</option>
-                            <option value="HISTORICO UBICACIONES">HISTORICO UBICACIONES</option>
+                            <option value="CONSOLIDADO INGRESOS">CONSOLIDADO INGRESOS</option>
+                            <option value="ETIQUETAR">ETIQUETAR</option>
+                            <option value="FORMATO DE ETIQUETA">FORMATO DE ETIQUETA</option>
                             <option value="STOCK">STOCK</option>
-                            <option value="STOCK VARIOS">STOCK VARIOS</option>
-                            <option value="INGRESOS DIARIOS">INGRESOS DIARIOS</option>
-                            <option value="CONSOLIDADO">CONSOLIDADO</option>
                             <option value="REPOSICIÓN">REPOSICIÓN</option>
+                            <option value="MASIVO_UBICACIONES">MASIVO_UBICACIONES</option>
                         </select>
                     </div>
-                    <div class="col-md-4">
-                        <input type="text" id="searchInput" class="form-control form-control-sm" placeholder="Buscar...">
-                    </div>
+                    <div class="col-md-4"><input type="text" id="searchInput" class="form-control form-control-sm" placeholder="Buscar en esta hoja..."></div>
                     <div class="col-md-5 d-flex gap-1">
-                        <button class="btn btn-sm btn-dark" onclick="resetearVista()">RESETEAR</button>
-                        <button class="btn btn-sm btn-primary" id="btnNuevaFila" style="display:none;" onclick="agregarNuevaFila()"><i class="bi bi-plus-lg"></i> NUEVA FILA</button>
+                        <button class="btn btn-sm btn-dark" onclick="resetearVista()">RESET</button>
+                        <button class="btn btn-sm btn-success" id="btnNuevaFila" style="display:none;" onclick="agregarNuevaFila()"><i class="bi bi-plus-lg"></i> NUEVA FILA</button>
                     </div>
                 </div>
 
@@ -125,10 +119,11 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyPTKRi6vDUxH9eIQNwh8XZCZAucg44Dr0TvywARJ64bUcYCVfmkPnk9nsSjf6g5DyxoA/exec';
+    const SCRIPT_URL = 'URL_DE_TU_SCRIPT_AQUI'; // Asegúrate de poner tu URL aquí
     let ubicaciones = [], datosFiltrados = [], dataEdicionRaw = [], headersEdicion = [];
     let paginaActual = 1, filasPorPagina = 50, vistaActual = 'GENERAL', miGrafico = null;
 
+    // --- CARGA INICIAL ---
     async function cargarDatosDesdeGoogle() {
         showLoader(true);
         try {
@@ -145,32 +140,39 @@
         document.getElementById('valDisponible').innerText = data.filter(u => u.estado === 'DISPONIBLE').length;
         document.getElementById('valOcupado').innerText = data.filter(u => u.estado !== 'DISPONIBLE').length;
         document.getElementById('valSobre').innerText = data.filter(u => u.estado === 'SOBRESTOCK').length;
-        
-        const total = data.length;
-        if(total > 0) {
-            const ocu = data.filter(u => u.estado !== 'DISPONIBLE').length;
-            const dis = data.filter(u => u.estado === 'DISPONIBLE').length;
-            document.getElementById('percOcupado').innerText = ((ocu/total)*100).toFixed(1) + '%';
-            document.getElementById('percDisponible').innerText = ((dis/total)*100).toFixed(1) + '%';
-        }
-        
         renderTable();
         renderGrafico(data);
         generarListaZonas(data);
     }
 
+    // --- ACCIONES DE MACROS (CONEXIÓN .GS) ---
+    function ejecutarAccion(nombreFuncion, params = []) {
+        if (!confirm(`¿Deseas ejecutar la acción: ${nombreFuncion}?`)) return;
+        showLoader(true);
+        google.script.run
+            .withSuccessHandler(res => {
+                showLoader(false);
+                alert(res);
+                cambiarVistaHoja(); 
+            })
+            .withFailureHandler(err => {
+                showLoader(false);
+                alert("Error: " + err);
+            })[nombreFuncion](...params);
+    }
+
+    // --- GESTIÓN DE TABLAS Y VISTAS ---
     function cambiarVistaHoja() {
         const hoja = document.getElementById('selectorHoja').value;
         const btnNueva = document.getElementById('btnNuevaFila');
         paginaActual = 1;
+        showLoader(true);
 
         if (hoja === "UBICACIONES") {
             vistaActual = 'GENERAL'; 
             btnNueva.style.display = 'none';
-            datosFiltrados = ubicaciones;
-            renderTable();
+            cargarDatosDesdeGoogle(); // Refresca KPIs también
         } else {
-            showLoader(true);
             google.script.run.withSuccessHandler(data => {
                 headersEdicion = data[0];
                 dataEdicionRaw = data.slice(1);
@@ -186,8 +188,7 @@
     function renderTable() {
         const head = document.getElementById('tableHead');
         const body = document.getElementById('tableBody');
-        head.innerHTML = `<tr><th>UBICACIÓN</th><th>ORGANIZADOR</th><th>GRUPO</th><th>ESTADO</th></tr>`;
-        
+        head.innerHTML = `<tr><th>UBICACIÓN</th><th>ZONA</th><th>GRUPO</th><th>ESTADO</th></tr>`;
         const dataPag = paginate(datosFiltrados);
         body.innerHTML = dataPag.map(item => {
             const u = item.datosUbi || [];
@@ -200,16 +201,15 @@
         const head = document.getElementById('tableHead');
         const body = document.getElementById('tableBody');
         head.innerHTML = `<tr>${headersEdicion.map(h => `<th>${h}</th>`).join('')}<th>ACCIONES</th></tr>`;
-        
         const dataPag = paginate(datosFiltrados);
         body.innerHTML = dataPag.map((fila, i) => {
             const realIdx = ((paginaActual - 1) * filasPorPagina) + i;
             return `<tr>
-                ${fila.map((c, ci) => `<td><input type="text" class="form-control form-control-sm" value="${c}" id="edit-${realIdx}-${ci}"></td>`).join('')}
+                ${fila.map((c, ci) => `<td><input type="text" class="form-control form-control-sm" style="min-width:100px" value="${c}" id="edit-${realIdx}-${ci}"></td>`).join('')}
                 <td>
                     <div class="d-flex gap-1">
-                        <button class="btn btn-sm btn-success" title="Guardar" onclick="guardarFila(${realIdx})"><i class="bi bi-floppy"></i></button>
-                        <button class="btn btn-sm btn-danger" title="Eliminar" onclick="borrarFila(${realIdx})"><i class="bi bi-trash"></i></button>
+                        <button class="btn btn-sm btn-success" onclick="guardarFila(${realIdx})"><i class="bi bi-floppy"></i></button>
+                        <button class="btn btn-sm btn-danger" onclick="borrarFila(${realIdx})"><i class="bi bi-trash"></i></button>
                     </div>
                 </td>
             </tr>`;
@@ -220,27 +220,14 @@
         const hoja = document.getElementById('selectorHoja').value;
         const valores = headersEdicion.map((_, i) => document.getElementById(`edit-${idx}-${i}`).value);
         showLoader(true);
-        google.script.run.withSuccessHandler(res => { 
-            alert(res); 
-            showLoader(false); 
-        }).guardarCambioDinamico(hoja, idx, valores);
+        google.script.run.withSuccessHandler(res => { alert(res); showLoader(false); }).guardarCambioDinamico(hoja, idx, valores);
     }
 
     function borrarFila(idx) {
-        if(!confirm("¿Seguro de borrar esta fila?")) return;
+        if(!confirm("¿Borrar fila permanentemente?")) return;
         const hoja = document.getElementById('selectorHoja').value;
         showLoader(true);
-        google.script.run.withSuccessHandler(res => {
-            alert(res);
-            cambiarVistaHoja();
-        }).eliminarFilaDinamica(hoja, idx);
-    }
-
-    function agregarNuevaFila() {
-        const vacio = headersEdicion.map(() => "");
-        dataEdicionRaw.unshift(vacio);
-        datosFiltrados = dataEdicionRaw;
-        renderTableEdicion();
+        google.script.run.withSuccessHandler(res => { alert(res); cambiarVistaHoja(); }).eliminarFilaDinamica(hoja, idx);
     }
 
     function paginate(data) {
@@ -252,64 +239,9 @@
         return data.slice(inicio, inicio + filasPorPagina);
     }
 
-    function cambiarPagina(dir) { 
-        paginaActual += dir; 
-        if(vistaActual==='EDICION') renderTableEdicion(); else renderTable(); 
-        document.querySelector('.table-container').scrollTop = 0;
-    }
-
-    function irADetalleYFiltrar(tipo) {
-        const tabDetalle = new bootstrap.Tab(document.getElementById('btn-detalle'));
-        tabDetalle.show();
-        document.getElementById('selectorHoja').value = "UBICACIONES";
-        vistaActual = 'GENERAL';
-        if(tipo === 'TODOS') datosFiltrados = ubicaciones;
-        else if(tipo === 'OCUPADOS_FULL') datosFiltrados = ubicaciones.filter(u => u.estado !== 'DISPONIBLE');
-        else datosFiltrados = ubicaciones.filter(u => u.estado === tipo);
-        renderTable();
-    }
-
-    function resetearVista() {
-        document.getElementById('selectorHoja').value = "UBICACIONES";
-        cambiarVistaHoja();
-    }
-
+    function cambiarPagina(dir) { paginaActual += dir; if(vistaActual==='EDICION') renderTableEdicion(); else renderTable(); }
     function showLoader(s) { document.getElementById('loader-overlay').style.display = s ? 'flex' : 'none'; }
-
-    function renderGrafico(data) {
-        const ctx = document.getElementById('ctxGrafico');
-        const zonas = [...new Set(data.map(u => u.datosUbi ? u.datosUbi[1] : null))].filter(Boolean).sort();
-        const dataset = zonas.map(z => data.filter(u => u.datosUbi && u.datosUbi[1] === z && u.estado !== 'DISPONIBLE').length);
-        if (miGrafico) miGrafico.destroy();
-        miGrafico = new Chart(ctx, {
-            type: 'doughnut',
-            data: { labels: zonas, datasets: [{ data: dataset, backgroundColor: ['#1a5928', '#f9ca24', '#eb4d4b', '#6ab04c', '#7ed6df'] }] },
-            options: { maintainAspectRatio: false, plugins: { legend: { display: false } } }
-        });
-    }
-
-    function generarListaZonas(data) {
-        const container = document.getElementById('resumenZonas');
-        const zonas = [...new Set(data.map(u => u.datosUbi ? u.datosUbi[1] : null))].filter(Boolean).sort();
-        container.innerHTML = '<div class="row row-cols-1 row-cols-md-2 g-2">' + zonas.map(z => {
-            const totalZ = data.filter(u => u.datosUbi && u.datosUbi[1] === z).length;
-            const dispZ = data.filter(u => u.datosUbi && u.datosUbi[1] === z && u.estado === 'DISPONIBLE').length;
-            const pOcu = totalZ > 0 ? (((totalZ - dispZ) / totalZ) * 100).toFixed(0) : 0;
-            return `<div class="col"><div class="p-2 border rounded bg-light small fw-bold">${z} <span class="float-end text-success">${dispZ} Libres</span><div class="progress" style="height:6px; margin-top:5px;"><div class="progress-bar bg-success" style="width:${pOcu}%"></div></div></div></div>`;
-        }).join('') + '</div>';
-    }
-
-    document.getElementById('searchInput').addEventListener('input', (e) => {
-        const term = e.target.value.toLowerCase();
-        paginaActual = 1;
-        if(vistaActual === 'EDICION') {
-            datosFiltrados = dataEdicionRaw.filter(fila => fila.some(c => c.toString().toLowerCase().includes(term)));
-            renderTableEdicion();
-        } else {
-            datosFiltrados = ubicaciones.filter(u => u.id.toLowerCase().includes(term) || (u.datosUbi && u.datosUbi[1].toLowerCase().includes(term)));
-            renderTable();
-        }
-    });
+    function resetearVista() { document.getElementById('selectorHoja').value = "UBICACIONES"; cambiarVistaHoja(); }
 
     window.onload = cargarDatosDesdeGoogle;
 </script>
