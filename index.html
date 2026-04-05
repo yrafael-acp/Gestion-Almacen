@@ -84,20 +84,20 @@
                     <div class="col-md-3">
                         <label class="fw-bold small mb-1">HOJA SELECCIONADA:</label>
                         <select class="form-select form-select-sm" id="selectorHoja" onchange="cambiarVistaHoja()">
-    <option value="UBICACIONES">📍 UBICACIONES</option>
-    <option value="STOCK">📦 STOCK</option>
-    <option value="REPOSICIÓN">🔄 REPOSICIÓN</option>
-    <option value="CONSOLIDADO INGRESOS">📑 CONSOLIDADO INGRESOS</option>
-    <option value="ETIQUETAR">🏷️ ETIQUETAR</option>
-    <option value="FORMATO DE ETIQUETA">🖨️ FORMATO DE ETIQUETA</option>
-    <option value="MASIVO_UBICACIONES">📤 MASIVO UBICACIONES</option>
-    <option value="HISTORICO UBICACIONES">📜 HISTÓRICO</option>
-    <option value="INGRESOS DIARIOS">📅 INGRESOS DIARIOS</option>
-    <option value="STOCK VARIOS">🖇️ STOCK VARIOS</option>
-    <option value="productos sin etiquetar">⚠️ SIN ETIQUETA</option>
-    <option value="CONSIGNACIÓN">🤝 CONSIGNACIÓN</option>
-    <option value="BACKUP">💾 BACKUP</option>
-</select>
+                            <option value="UBICACIONES">📍 UBICACIONES</option>
+                            <option value="STOCK">📦 STOCK</option>
+                            <option value="REPOSICIÓN">🔄 REPOSICIÓN</option>
+                            <option value="CONSOLIDADO INGRESOS">📑 CONSOLIDADO INGRESOS</option>
+                            <option value="ETIQUETAR">🏷️ ETIQUETAR</option>
+                            <option value="FORMATO DE ETIQUETA">🖨️ FORMATO DE ETIQUETA</option>
+                            <option value="MASIVO_UBICACIONES">📤 MASIVO UBICACIONES</option>
+                            <option value="HISTORICO UBICACIONES">📜 HISTÓRICO</option>
+                            <option value="INGRESOS DIARIOS">📅 INGRESOS DIARIOS</option>
+                            <option value="STOCK VARIOS">🖇️ STOCK VARIOS</option>
+                            <option value="productos sin etiquetar">⚠️ SIN ETIQUETA</option>
+                            <option value="CONSIGNACIÓN">🤝 CONSIGNACIÓN</option>
+                            <option value="BACKUP">💾 BACKUP</option>
+                        </select>
                     </div>
                     <div class="col-md-4"><input type="text" id="searchInput" class="form-control form-control-sm" placeholder="Buscar en esta hoja..."></div>
                     <div class="col-md-5 d-flex gap-1">
@@ -146,12 +146,21 @@
         document.getElementById('valDisponible').innerText = data.filter(u => u.estado === 'DISPONIBLE').length;
         document.getElementById('valOcupado').innerText = data.filter(u => u.estado !== 'DISPONIBLE').length;
         document.getElementById('valSobre').innerText = data.filter(u => u.estado === 'SOBRESTOCK').length;
+        
+        const total = data.length;
+        if(total > 0) {
+            const ocu = data.filter(u => u.estado !== 'DISPONIBLE').length;
+            const dis = data.filter(u => u.estado === 'DISPONIBLE').length;
+            document.getElementById('percOcupado').innerText = ((ocu/total)*100).toFixed(1) + '%';
+            document.getElementById('percDisponible').innerText = ((dis/total)*100).toFixed(1) + '%';
+        }
+        
         renderTable();
         renderGrafico(data);
         generarListaZonas(data);
     }
 
-    // --- ACCIONES DE MACROS (CONEXIÓN .GS) ---
+    // --- ACCIONES DE MACROS ---
     function ejecutarAccion(nombreFuncion, params = []) {
         if (!confirm(`¿Deseas ejecutar la acción: ${nombreFuncion}?`)) return;
         showLoader(true);
@@ -167,46 +176,43 @@
             })[nombreFuncion](...params);
     }
 
-function cambiarVistaHoja() {
-    const hoja = document.getElementById('selectorHoja').value;
-    const btnNueva = document.getElementById('btnNuevaFila');
-    paginaActual = 1;
-    
-    showLoader(true); // Bloqueamos la pantalla con el spinner verde
+    // --- CAMBIO DE HOJA OPTIMIZADO ---
+    function cambiarVistaHoja() {
+        const hoja = document.getElementById('selectorHoja').value;
+        const btnNueva = document.getElementById('btnNuevaFila');
+        paginaActual = 1;
+        
+        showLoader(true);
 
-    // Usamos setTimeout(0) para forzar al navegador a mostrar el loader antes de la petición
-    setTimeout(() => {
-        if (hoja === "UBICACIONES") {
-            vistaActual = 'GENERAL'; 
-            btnNueva.style.display = 'none';
-            // Cargamos KPIs y tabla principal
-            cargarDatosDesdeGoogle(); 
-        } else {
-            google.script.run
-                .withSuccessHandler(data => {
-                    if (!data || data.length === 0) {
-                        alert("La hoja está vacía o no existe.");
+        setTimeout(() => {
+            if (hoja === "UBICACIONES") {
+                vistaActual = 'GENERAL'; 
+                btnNueva.style.display = 'none';
+                cargarDatosDesdeGoogle(); 
+            } else {
+                google.script.run
+                    .withSuccessHandler(data => {
+                        if (!data || data.length === 0) {
+                            alert("La hoja está vacía o no existe.");
+                            showLoader(false);
+                            return;
+                        }
+                        headersEdicion = data[0];
+                        dataEdicionRaw = data.slice(1);
+                        datosFiltrados = dataEdicionRaw;
+                        vistaActual = 'EDICION'; 
+                        btnNueva.style.display = 'block';
+                        renderTableEdicion();
                         showLoader(false);
-                        return;
-                    }
-                    headersEdicion = data[0];
-                    dataEdicionRaw = data.slice(1);
-                    datosFiltrados = dataEdicionRaw;
-                    vistaActual = 'EDICION'; 
-                    btnNueva.style.display = 'block';
-                    
-                    // Renderizado optimizado
-                    renderTableEdicion();
-                    showLoader(false);
-                })
-                .withFailureHandler(err => {
-                    showLoader(false);
-                    alert("Error al cargar: " + err);
-                })
-                .obtenerDataDirecta(hoja);
-        }
-    }, 50); 
-}
+                    })
+                    .withFailureHandler(err => {
+                        showLoader(false);
+                        alert("Error al cargar: " + err);
+                    })
+                    .obtenerDataDirecta(hoja);
+            }
+        }, 50); 
+    }
 
     function renderTable() {
         const head = document.getElementById('tableHead');
@@ -221,43 +227,38 @@ function cambiarVistaHoja() {
     }
 
     function renderTableEdicion() {
-    const head = document.getElementById('tableHead');
-    const body = document.getElementById('tableBody');
-    
-    // Limpiamos contenido previo para liberar memoria
-    head.innerHTML = "";
-    body.innerHTML = "";
+        const head = document.getElementById('tableHead');
+        const body = document.getElementById('tableBody');
+        head.innerHTML = "";
+        body.innerHTML = "";
 
-    // Construir cabecera
-    const trHead = document.createElement('tr');
-    headersEdicion.forEach(h => {
-        const th = document.createElement('th');
-        th.innerText = h;
-        trHead.appendChild(th);
-    });
-    const thAccion = document.createElement('th');
-    thAccion.innerText = "ACCIONES";
-    trHead.appendChild(thAccion);
-    head.appendChild(trHead);
+        const trHead = document.createElement('tr');
+        headersEdicion.forEach(h => {
+            const th = document.createElement('th');
+            th.innerText = h;
+            trHead.appendChild(th);
+        });
+        const thAccion = document.createElement('th');
+        thAccion.innerText = "ACCIONES";
+        trHead.appendChild(thAccion);
+        head.appendChild(trHead);
 
-    // Paginación real: solo procesamos 50 filas, así no se cuelga
-    const dataPag = paginate(datosFiltrados);
-    
-    let htmlRows = "";
-    dataPag.forEach((fila, i) => {
-        const realIdx = ((paginaActual - 1) * filasPorPagina) + i;
-        htmlRows += `<tr>
-            ${fila.map((c, ci) => `<td><input type="text" class="form-control form-control-sm" value="${c}" id="edit-${realIdx}-${ci}"></td>`).join('')}
-            <td>
-                <div class="d-flex gap-1">
-                    <button class="btn btn-sm btn-success" onclick="guardarFila(${realIdx})"><i class="bi bi-floppy"></i></button>
-                    <button class="btn btn-sm btn-danger" onclick="borrarFila(${realIdx})"><i class="bi bi-trash"></i></button>
-                </div>
-            </td>
-        </tr>`;
-    });
-    body.innerHTML = htmlRows;
-}
+        const dataPag = paginate(datosFiltrados);
+        let htmlRows = "";
+        dataPag.forEach((fila, i) => {
+            const realIdx = ((paginaActual - 1) * filasPorPagina) + i;
+            htmlRows += `<tr>
+                ${fila.map((c, ci) => `<td><input type="text" class="form-control form-control-sm" value="${c}" id="edit-${realIdx}-${ci}"></td>`).join('')}
+                <td>
+                    <div class="d-flex gap-1">
+                        <button class="btn btn-sm btn-success" title="Guardar" onclick="guardarFila(${realIdx})"><i class="bi bi-floppy"></i></button>
+                        <button class="btn btn-sm btn-danger" title="Eliminar" onclick="borrarFila(${realIdx})"><i class="bi bi-trash"></i></button>
+                    </div>
+                </td>
+            </tr>`;
+        });
+        body.innerHTML = htmlRows;
+    }
 
     function guardarFila(idx) {
         const hoja = document.getElementById('selectorHoja').value;
@@ -273,6 +274,13 @@ function cambiarVistaHoja() {
         google.script.run.withSuccessHandler(res => { alert(res); cambiarVistaHoja(); }).eliminarFilaDinamica(hoja, idx);
     }
 
+    function agregarNuevaFila() {
+        const vacio = headersEdicion.map(() => "");
+        dataEdicionRaw.unshift(vacio);
+        datosFiltrados = dataEdicionRaw;
+        renderTableEdicion();
+    }
+
     function paginate(data) {
         const inicio = (paginaActual - 1) * filasPorPagina;
         const total = Math.ceil(data.length / filasPorPagina);
@@ -285,6 +293,41 @@ function cambiarVistaHoja() {
     function cambiarPagina(dir) { paginaActual += dir; if(vistaActual==='EDICION') renderTableEdicion(); else renderTable(); }
     function showLoader(s) { document.getElementById('loader-overlay').style.display = s ? 'flex' : 'none'; }
     function resetearVista() { document.getElementById('selectorHoja').value = "UBICACIONES"; cambiarVistaHoja(); }
+
+    function renderGrafico(data) {
+        const ctx = document.getElementById('ctxGrafico');
+        const zonas = [...new Set(data.map(u => u.datosUbi ? u.datosUbi[1] : null))].filter(Boolean).sort();
+        const dataset = zonas.map(z => data.filter(u => u.datosUbi && u.datosUbi[1] === z && u.estado !== 'DISPONIBLE').length);
+        if (miGrafico) miGrafico.destroy();
+        miGrafico = new Chart(ctx, {
+            type: 'doughnut',
+            data: { labels: zonas, datasets: [{ data: dataset, backgroundColor: ['#1a5928', '#f9ca24', '#eb4d4b', '#6ab04c', '#7ed6df'] }] },
+            options: { maintainAspectRatio: false, plugins: { legend: { display: false } } }
+        });
+    }
+
+    function generarListaZonas(data) {
+        const container = document.getElementById('resumenZonas');
+        const zonas = [...new Set(data.map(u => u.datosUbi ? u.datosUbi[1] : null))].filter(Boolean).sort();
+        container.innerHTML = '<div class="row row-cols-1 row-cols-md-2 g-2">' + zonas.map(z => {
+            const totalZ = data.filter(u => u.datosUbi && u.datosUbi[1] === z).length;
+            const dispZ = data.filter(u => u.datosUbi && u.datosUbi[1] === z && u.estado === 'DISPONIBLE').length;
+            const pOcu = totalZ > 0 ? (((totalZ - dispZ) / totalZ) * 100).toFixed(0) : 0;
+            return `<div class="col"><div class="p-2 border rounded bg-light small fw-bold">${z} <span class="float-end text-success">${dispZ} Libres</span><div class="progress" style="height:6px; margin-top:5px;"><div class="progress-bar bg-success" style="width:${pOcu}%"></div></div></div></div>`;
+        }).join('') + '</div>';
+    }
+
+    document.getElementById('searchInput').addEventListener('input', (e) => {
+        const term = e.target.value.toLowerCase();
+        paginaActual = 1;
+        if(vistaActual === 'EDICION') {
+            datosFiltrados = dataEdicionRaw.filter(fila => fila.some(c => c.toString().toLowerCase().includes(term)));
+            renderTableEdicion();
+        } else {
+            datosFiltrados = ubicaciones.filter(u => u.id.toLowerCase().includes(term) || (u.datosUbi && u.datosUbi[1].toLowerCase().includes(term)));
+            renderTable();
+        }
+    });
 
     window.onload = cargarDatosDesdeGoogle;
 </script>
