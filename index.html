@@ -3,191 +3,96 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dashboard Almacén - Cerro Prieto</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+  <title>Dashboard Operativo CP</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     :root {
-      --cp-verde: #1a5928;
-      --cp-amarillo: #f9ca24;
-      --cp-gris: #6c757d;
-      --cp-fondo: #f0f2f5;
+      --cp-verde: #0f6b2d;
+      --cp-amarillo: #f3c623;
+      --cp-bg: #eef1f4;
     }
-
-    body {
-      background-color: var(--cp-fondo);
-      font-family: 'Segoe UI', sans-serif;
-      overflow-x: hidden;
-    }
-
-    .navbar {
-      background-color: var(--cp-verde);
-      border-bottom: 4px solid var(--cp-amarillo);
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-
-    .kpi-card {
-      border: none;
-      border-radius: 12px;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.05);
-      transition: transform 0.2s;
-      height: 100%;
-      cursor: pointer;
-    }
-
-    .kpi-card:hover { transform: scale(1.03); }
-    .kpi-title {
-      font-size: 0.65rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      color: var(--cp-gris);
-    }
-    .kpi-value {
-      font-size: 1.5rem;
-      font-weight: 800;
-      margin: 2px 0;
-    }
-    .nav-link {
-      color: var(--cp-verde);
-      font-weight: 600;
-      border: 1px solid var(--cp-verde);
-      margin: 0 5px;
-    }
-    .nav-pills .nav-link.active {
-      background-color: var(--cp-verde);
-      color: white;
-    }
-    .table-container {
-      height: 420px;
-      overflow-y: auto;
-      border: 1px solid #dee2e6;
-      background: white;
-      border-radius: 10px;
-    }
-    thead {
-      position: sticky;
-      top: 0;
-      background-color: #f8f9fa;
-      z-index: 10;
-    }
-    .status-badge {
-      font-size: 0.7rem;
-      padding: 4px 10px;
-      border-radius: 20px;
-      font-weight: bold;
-    }
-    .bg-disponible { background-color: #d1e7dd; color: #0f5132; }
-    .bg-ocupado { background-color: #cfe2ff; color: #084298; }
-    .bg-sobrestock { background-color: #f8d7da; color: #842029; }
-    .btn-group-custom .btn { font-size: 0.72rem; font-weight: bold; }
-
-    #loader-overlay {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(255,255,255,0.92);
-      z-index: 9999;
-      display: none;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-    }
-
-    #toast-container {
-      position: fixed;
-      top: 1rem;
-      right: 1rem;
-      z-index: 11000;
-      min-width: 320px;
-    }
-
-    .empty-state {
-      padding: 2rem;
-      text-align: center;
-      color: #6c757d;
-    }
+    body { background: var(--cp-bg); font-family: 'Segoe UI', sans-serif; overflow-x: hidden; }
+    .navbar { background: var(--cp-verde); border-bottom: 4px solid var(--cp-amarillo); }
+    .card-soft { border: 0; border-radius: 14px; box-shadow: 0 2px 10px rgba(0,0,0,.06); }
+    .kpi-card { cursor: pointer; transition: transform .15s ease, box-shadow .15s ease; }
+    .kpi-card:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0,0,0,.08); }
+    .kpi-title { font-size: .72rem; color: #6c757d; text-transform: uppercase; font-weight: 700; }
+    .kpi-value { font-size: 1.55rem; font-weight: 800; line-height: 1.1; }
+    .table-container { height: 420px; overflow: auto; border: 1px solid #dbe1e7; border-radius: 12px; background: #fff; }
+    thead { position: sticky; top: 0; z-index: 2; }
+    .status-badge { font-size: .72rem; border-radius: 999px; padding: .35rem .7rem; font-weight: 700; }
+    .bg-disponible { background: #d1e7dd; color: #0f5132; }
+    .bg-ocupado { background: #cfe2ff; color: #084298; }
+    .bg-sobrestock { background: #f8d7da; color: #842029; }
+    .table-input { min-width: 160px; }
+    #loader-overlay { position: fixed; inset: 0; background: rgba(255,255,255,.84); z-index: 1055; display: none; align-items: center; justify-content: center; flex-direction: column; }
+    .clickable { user-select: none; }
+    .toast-container { z-index: 2000; }
+    .nav-pills .nav-link { font-weight: 700; color: var(--cp-verde); border: 1px solid rgba(15,107,45,.3); }
+    .nav-pills .nav-link.active { background: var(--cp-verde); }
+    .chart-wrap { min-height: 320px; position: relative; }
   </style>
 </head>
 <body>
-  <div id="loader-overlay" aria-live="polite" aria-busy="true">
+  <div id="loader-overlay">
     <div class="spinner-border text-success" role="status"></div>
-    <span class="mt-2 fw-bold text-success" id="loader-text">Sincronizando con Cerro Prieto...</span>
+    <div class="mt-2 fw-bold text-success">Sincronizando con Cerro Prieto...</div>
   </div>
 
-  <div id="toast-container"></div>
+  <div class="toast-container position-fixed top-0 end-0 p-3" id="toastContainer"></div>
 
-  <nav class="navbar navbar-dark mb-3 px-3">
-    <span class="navbar-brand mb-0 h1"><i class="bi bi-cpu-fill me-2"></i> DASHBOARD OPERATIVO CP</span>
+  <nav class="navbar navbar-dark px-3 mb-3">
+    <span class="navbar-brand fw-bold"><i class="bi bi-cpu-fill me-2"></i>DASHBOARD OPERATIVO CP</span>
   </nav>
 
-  <div class="container-fluid px-3">
-    <ul class="nav nav-pills mb-3 justify-content-center" id="pills-tab" role="tablist">
-      <li class="nav-item"><button class="nav-link active" id="btn-resumen" data-bs-toggle="pill" data-bs-target="#view-resumen" type="button">RESUMEN</button></li>
-      <li class="nav-item"><button class="nav-link" id="btn-detalle" data-bs-toggle="pill" data-bs-target="#view-detalle" type="button">DETALLE / EDICIÓN</button></li>
+  <main class="container-fluid px-3 pb-4">
+    <ul class="nav nav-pills justify-content-center mb-3" id="mainTabs" role="tablist">
+      <li class="nav-item"><button class="nav-link active" data-bs-toggle="pill" data-bs-target="#view-resumen" type="button">RESUMEN</button></li>
+      <li class="nav-item ms-2"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#view-detalle" type="button">DETALLE / EDICIÓN</button></li>
     </ul>
 
-    <div class="tab-content" id="pills-tabContent">
-      <div class="tab-pane fade show active" id="view-resumen" role="tabpanel">
-        <div class="row g-2 mb-3 text-center">
-          <div class="col" data-kpi-filter="TODOS">
-            <div class="card kpi-card p-2 border-start border-dark border-4"><span class="kpi-title">Capacidad</span><div class="kpi-value" id="totalUbi">0</div></div>
-          </div>
-          <div class="col" data-kpi-filter="OCUPADOS_FULL">
-            <div class="card kpi-card p-2 border-start border-primary border-4"><span class="kpi-title">Ocupado</span><div class="kpi-value text-primary" id="valOcupado">0</div><span id="percOcupado" class="fw-bold small text-primary">0%</span></div>
-          </div>
-          <div class="col" data-kpi-filter="SOBRESTOCK">
-            <div class="card kpi-card p-2 border-start border-danger border-4"><span class="kpi-title">Sobrestock</span><div class="kpi-value text-danger" id="valSobre">0</div></div>
-          </div>
-          <div class="col" data-kpi-filter="DISPONIBLE">
-            <div class="card kpi-card p-2 border-start border-success border-4"><span class="kpi-title">Libre</span><div class="kpi-value text-success" id="valDisponible">0</div><span id="percDisponible" class="fw-bold small text-success">0%</span></div>
-          </div>
-        </div>
+    <div class="tab-content">
+      <section class="tab-pane fade show active" id="view-resumen">
+        <div class="row g-2 mb-3 text-center" id="kpiCards"></div>
         <div class="row g-3">
-          <div class="col-lg-4"><div class="card p-3 shadow-sm h-100"><canvas id="ctxGrafico"></canvas></div></div>
-          <div class="col-lg-8"><div id="resumenZonas" class="card p-3 shadow-sm h-100"></div></div>
+          <div class="col-lg-4">
+            <div class="card card-soft p-3 h-100">
+              <div class="chart-wrap"><canvas id="ctxGrafico"></canvas></div>
+            </div>
+          </div>
+          <div class="col-lg-8">
+            <div id="resumenZonas" class="card card-soft p-3 h-100"></div>
+          </div>
         </div>
-      </div>
+      </section>
 
-      <div class="tab-pane fade" id="view-detalle" role="tabpanel">
-        <div class="card p-2 mb-3 border-0 shadow-sm bg-white">
-          <div class="d-flex flex-wrap gap-2 justify-content-center btn-group-custom" id="actionBar">
-            <button class="btn btn-outline-danger" data-action="limpiarRangoGeneral" data-requires-sheet="true"><i class="bi bi-eraser"></i> LIMPIAR A:H</button>
-            <button class="btn btn-outline-danger" id="btnOmisiones" data-action="limpiarConOmisiones" data-requires-sheet="true"><i class="bi bi-scissors"></i> LIMPIAR CON OMISIONES</button>
-            <button class="btn btn-outline-primary" data-action="transferirConsolidadoAEtiquetar"><i class="bi bi-arrow-right-circle"></i> CONSOLIDADO -> ETIQUETAR</button>
-            <button class="btn btn-outline-primary" data-action="copiarEtiquetasAMasivo"><i class="bi bi-box-arrow-in-down"></i> ETIQUETAR -> MASIVO</button>
-            <button class="btn btn-outline-success" data-action="generarFormatoEtiqueta"><i class="bi bi-printer"></i> FORMATO ETIQUETA</button>
-            <button class="btn btn-outline-dark" data-action="actualizarTablasDinamicas"><i class="bi bi-arrow-clockwise"></i> REFRESCAR PIVOTS</button>
-            <button class="btn btn-outline-warning text-dark" data-action="filtrarSinStock"><i class="bi bi-filter-square"></i> FILTRAR SIN STOCK</button>
+      <section class="tab-pane fade" id="view-detalle">
+        <div class="card card-soft p-2 mb-3 bg-white">
+          <div class="d-flex flex-wrap gap-2 justify-content-center" id="actionButtons">
+            <button class="btn btn-outline-danger btn-sm" data-action="limpiarRangoGeneral"><i class="bi bi-eraser"></i> LIMPIAR A:H</button>
+            <button class="btn btn-outline-danger btn-sm" data-action="limpiarConOmisiones" id="btnOmisiones"><i class="bi bi-scissors"></i> LIMPIAR CON OMISIONES</button>
+            <button class="btn btn-outline-primary btn-sm" data-action="transferirConsolidadoAEtiquetar"><i class="bi bi-arrow-right-circle"></i> CONSOLIDADO -> ETIQUETAR</button>
+            <button class="btn btn-outline-primary btn-sm" data-action="copiarEtiquetasAMasivo"><i class="bi bi-box-arrow-in-down"></i> ETIQUETAR -> MASIVO</button>
+            <button class="btn btn-outline-success btn-sm" data-action="generarFormatoEtiqueta"><i class="bi bi-printer"></i> FORMATO ETIQUETA</button>
+            <button class="btn btn-outline-dark btn-sm" data-action="actualizarTablasDinamicas"><i class="bi bi-arrow-clockwise"></i> REFRESCAR PIVOTS</button>
+            <button class="btn btn-outline-warning btn-sm" data-action="filtrarSinStock"><i class="bi bi-filter-square"></i> FILTRAR SIN STOCK</button>
           </div>
         </div>
 
-        <div class="card p-3 shadow-sm border-0">
-          <div class="row g-2 mb-3 align-items-end">
+        <div class="card card-soft p-3 bg-white">
+          <div class="row g-2 align-items-end mb-3">
             <div class="col-md-3">
-              <label class="fw-bold small mb-1">HOJA SELECCIONADA:</label>
-              <select class="form-select form-select-sm" id="selectorHoja">
-                <option value="UBICACIONES">📍 UBICACIONES</option>
-                <option value="STOCK">📦 STOCK</option>
-                <option value="REPOSICIÓN">🔄 REPOSICIÓN</option>
-                <option value="CONSOLIDADO INGRESOS">📑 CONSOLIDADO INGRESOS</option>
-                <option value="ETIQUETAR">🏷️ ETIQUETAR</option>
-                <option value="FORMATO DE ETIQUETA">🖨️ FORMATO DE ETIQUETA</option>
-                <option value="MASIVO_UBICACIONES">📤 MASIVO UBICACIONES</option>
-                <option value="HISTORICO UBICACIONES">📜 HISTÓRICO</option>
-                <option value="INGRESOS DIARIOS">📅 INGRESOS DIARIOS</option>
-                <option value="STOCK VARIOS">🖇️ STOCK VARIOS</option>
-                <option value="productos sin etiquetar">⚠️ SIN ETIQUETA</option>
-                <option value="CONSIGNACIÓN">🤝 CONSIGNACIÓN</option>
-                <option value="BACKUP">💾 BACKUP</option>
-              </select>
+              <label class="form-label fw-bold small mb-1">HOJA SELECCIONADA</label>
+              <select class="form-select form-select-sm" id="selectorHoja"></select>
             </div>
-            <div class="col-md-4"><input type="text" id="searchInput" class="form-control form-control-sm" placeholder="Buscar en esta hoja..."></div>
-            <div class="col-md-5 d-flex gap-1">
-              <button class="btn btn-sm btn-dark" id="btnReset">RESET</button>
-              <button class="btn btn-sm btn-success" id="btnNuevaFila" style="display:none;"><i class="bi bi-plus-lg"></i> NUEVA FILA</button>
+            <div class="col-md-4">
+              <input type="text" id="searchInput" class="form-control form-control-sm" placeholder="Buscar en esta hoja...">
+            </div>
+            <div class="col-md-5 d-flex gap-2">
+              <button class="btn btn-dark btn-sm" id="btnReset">RESET</button>
+              <button class="btn btn-success btn-sm" id="btnNuevaFila" style="display:none;"><i class="bi bi-plus-lg"></i> NUEVA FILA</button>
             </div>
           </div>
 
@@ -199,269 +104,132 @@
           </div>
 
           <div class="d-flex justify-content-between align-items-center mt-3">
-            <button class="btn btn-sm btn-outline-success" id="btnAnterior">Anterior</button>
-            <span id="infoPaginacion" class="small fw-bold">Página 1</span>
-            <button class="btn btn-sm btn-outline-success" id="btnSiguiente">Siguiente</button>
+            <button class="btn btn-outline-success btn-sm" id="btnAnterior">Anterior</button>
+            <span class="fw-bold small" id="infoPaginacion">Página 1 de 1</span>
+            <button class="btn btn-outline-success btn-sm" id="btnSiguiente">Siguiente</button>
           </div>
         </div>
-      </div>
+      </section>
     </div>
-  </div>
+  </main>
 
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script>
     const CONFIG = {
       SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbyPTKRi6vDUxH9eIQNwh8XZCZAucg44Dr0TvywARJ64bUcYCVfmkPnk9nsSjf6g5DyxoA/exec',
-      FILAS_POR_PAGINA: 50,
-      DEFAULT_HOJA: 'UBICACIONES',
-      HOJA_ETIQUETAR: 'ETIQUETAR',
-      VISTA_GENERAL: 'GENERAL',
-      VISTA_EDICION: 'EDICION'
+      PAGE_SIZE: 50,
+      HOJAS: [
+        'UBICACIONES', 'STOCK', 'REPOSICIÓN', 'CONSOLIDADO INGRESOS', 'ETIQUETAR',
+        'FORMATO DE ETIQUETA', 'MASIVO_UBICACIONES', 'HISTORICO UBICACIONES',
+        'INGRESOS DIARIOS', 'STOCK VARIOS', 'productos sin etiquetar', 'CONSIGNACIÓN', 'BACKUP'
+      ],
+      SUMMARY_FILTERS: {
+        TODOS: () => true,
+        DISPONIBLE: (row) => row.estado === 'DISPONIBLE',
+        SOBRESTOCK: (row) => row.estado === 'SOBRESTOCK',
+        OCUPADOS_FULL: (row) => row.estado !== 'DISPONIBLE'
+      }
     };
 
     const state = {
-      vista: CONFIG.VISTA_GENERAL,
-      hojaActual: CONFIG.DEFAULT_HOJA,
+      mode: 'GENERAL',
+      hojaActual: 'UBICACIONES',
       paginaActual: 1,
-      filasPorPagina: CONFIG.FILAS_POR_PAGINA,
       busqueda: '',
-      filtroKPI: 'TODOS',
       ubicaciones: [],
-      datosHoja: [],
-      datosFiltrados: [],
-      headers: [],
+      editableHeaders: [],
+      editableRows: [],
+      filteredRows: [],
+      summaryFilter: 'TODOS',
       chart: null,
-      loading: false,
-      newRows: []
+      loading: false
     };
 
-    const DOM = {
-      loader: document.getElementById('loader-overlay'),
-      loaderText: document.getElementById('loader-text'),
-      totalUbi: document.getElementById('totalUbi'),
-      valDisponible: document.getElementById('valDisponible'),
-      valOcupado: document.getElementById('valOcupado'),
-      valSobre: document.getElementById('valSobre'),
-      percOcupado: document.getElementById('percOcupado'),
-      percDisponible: document.getElementById('percDisponible'),
-      resumenZonas: document.getElementById('resumenZonas'),
-      tableHead: document.getElementById('tableHead'),
-      tableBody: document.getElementById('tableBody'),
-      infoPaginacion: document.getElementById('infoPaginacion'),
-      btnAnterior: document.getElementById('btnAnterior'),
-      btnSiguiente: document.getElementById('btnSiguiente'),
-      selectorHoja: document.getElementById('selectorHoja'),
-      searchInput: document.getElementById('searchInput'),
-      btnNuevaFila: document.getElementById('btnNuevaFila'),
-      btnReset: document.getElementById('btnReset'),
-      btnDetalle: document.getElementById('btn-detalle'),
-      toastContainer: document.getElementById('toast-container'),
-      actionBar: document.getElementById('actionBar'),
-      btnOmisiones: document.getElementById('btnOmisiones'),
-      chartCanvas: document.getElementById('ctxGrafico')
-    };
+    const els = {};
 
-    const Utils = {
-      safeString(value) {
-        return value == null ? '' : String(value);
+    const Api = {
+      async getUbicaciones() {
+        return this._request('getDashboard');
       },
-      normalize(value) {
-        return Utils.safeString(value).trim().toLowerCase();
-      },
-      escapeHtml(value) {
-        return Utils.safeString(value)
-          .replace(/&/g, '&amp;')
-          .replace(/</g, '&lt;')
-          .replace(/>/g, '&gt;')
-          .replace(/"/g, '&quot;')
-          .replace(/'/g, '&#39;');
-      },
-      randomId(prefix = 'id') {
-        return `${prefix}-${Math.random().toString(36).slice(2, 11)}`;
-      },
-      debounce(fn, wait = 250) {
-        let timeout;
-        return (...args) => {
-          clearTimeout(timeout);
-          timeout = setTimeout(() => fn(...args), wait);
-        };
-      },
-      palette(size) {
-        return Array.from({ length: size }, (_, index) => `hsl(${Math.round((360 / Math.max(size, 1)) * index)}, 60%, 45%)`);
-      }
-    };
 
-    const Notifier = {
-      show(message, type = 'success') {
-        const id = Utils.randomId('toast');
-        const iconMap = {
-          success: 'check-circle-fill',
-          danger: 'exclamation-triangle-fill',
-          warning: 'exclamation-circle-fill',
-          info: 'info-circle-fill'
-        };
-        const wrapper = document.createElement('div');
-        wrapper.innerHTML = `
-          <div id="${id}" class="toast align-items-center text-bg-${type} border-0 mb-2" role="alert" aria-live="assertive" aria-atomic="true">
-            <div class="d-flex">
-              <div class="toast-body"><i class="bi bi-${iconMap[type] || iconMap.info} me-2"></i>${Utils.escapeHtml(message)}</div>
-              <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
-            </div>
-          </div>`;
-        const node = wrapper.firstElementChild;
-        DOM.toastContainer.appendChild(node);
-        const toast = new bootstrap.Toast(node, { delay: 3500 });
-        toast.show();
-        node.addEventListener('hidden.bs.toast', () => node.remove());
-      }
-    };
+      async getHoja(hoja, limit = 500) {
+        return this._request('getHoja', { hoja, limit });
+      },
 
-    const UI = {
-      setLoading(isLoading, message = 'Procesando...') {
-        state.loading = isLoading;
-        DOM.loaderText.innerText = message;
-        DOM.loader.style.display = isLoading ? 'flex' : 'none';
+      async saveRow(hoja, rowIndex, values) {
+        return this._request('saveRow', { hoja, rowIndex, values }, 'POST');
       },
-      setActionButtonsState(disabled) {
-        DOM.actionBar.querySelectorAll('button').forEach((button) => {
-          button.disabled = disabled;
-        });
+
+      async appendRow(hoja, values) {
+        return this._request('appendRow', { hoja, values }, 'POST');
       },
-      updateActionVisibility() {
-        DOM.btnOmisiones.style.display = state.hojaActual === CONFIG.HOJA_ETIQUETAR ? 'inline-block' : 'none';
-        DOM.btnNuevaFila.style.display = state.vista === CONFIG.VISTA_EDICION ? 'inline-block' : 'none';
+
+      async deleteRow(hoja, rowIndex) {
+        return this._request('deleteRow', { hoja, rowIndex }, 'POST');
       },
-      renderKpis(kpis) {
-        DOM.totalUbi.innerText = kpis.total;
-        DOM.valDisponible.innerText = kpis.disponibles;
-        DOM.valOcupado.innerText = kpis.ocupados;
-        DOM.valSobre.innerText = kpis.sobrestock;
-        DOM.percOcupado.innerText = `${kpis.porcentajeOcupado}%`;
-        DOM.percDisponible.innerText = `${kpis.porcentajeDisponible}%`;
+
+      async runAction(action, hoja) {
+        return this._request('runAction', { action, hoja }, 'POST');
       },
-      renderPagination(meta) {
-        DOM.infoPaginacion.innerText = `Página ${meta.page} de ${meta.totalPages}`;
-        DOM.btnAnterior.disabled = meta.page <= 1;
-        DOM.btnSiguiente.disabled = meta.page >= meta.totalPages;
-      },
-      renderEmptyState(columns = 1, message = 'No se encontraron datos.') {
-        DOM.tableHead.innerHTML = '';
-        DOM.tableBody.innerHTML = `<tr><td colspan="${columns}" class="empty-state">${Utils.escapeHtml(message)}</td></tr>`;
-        UI.renderPagination({ page: 1, totalPages: 1 });
-      },
-      renderGeneralTable(rows, meta) {
-        DOM.tableHead.innerHTML = '<tr><th>UBICACIÓN</th><th>ZONA</th><th>GRUPO</th><th>ESTADO</th></tr>';
-        if (!rows.length) {
-          DOM.tableBody.innerHTML = '<tr><td colspan="4" class="empty-state">No hay ubicaciones para mostrar.</td></tr>';
-          UI.renderPagination(meta);
-          return;
+
+      async _request(action, payload = {}, method = 'GET') {
+        const url = new URL(CONFIG.SCRIPT_URL);
+
+        if (method === 'GET') {
+          url.searchParams.set('action', action);
+          Object.entries(payload).forEach(([key, value]) => {
+            if (value !== undefined && value !== null) url.searchParams.set(key, String(value));
+          });
+
+          const response = await fetch(url.toString(), {
+            method: 'GET',
+            redirect: 'follow',
+            cache: 'no-store'
+          });
+          const json = await response.json();
+          return this._normalize(json);
         }
 
-        DOM.tableBody.innerHTML = rows.map((item) => {
-          const cl = item.estado === 'DISPONIBLE' ? 'bg-disponible' : (item.estado === 'SOBRESTOCK' ? 'bg-sobrestock' : 'bg-ocupado');
-          return `
-            <tr>
-              <td><b>${Utils.escapeHtml(item.codigo)}</b></td>
-              <td>${Utils.escapeHtml(item.zona)}</td>
-              <td>${Utils.escapeHtml(item.grupo)}</td>
-              <td><span class="status-badge ${cl}">${Utils.escapeHtml(item.estado)}</span></td>
-            </tr>`;
-        }).join('');
-        UI.renderPagination(meta);
-      },
-      renderEditTable(headers, rows, meta) {
-        if (!headers.length) {
-          UI.renderEmptyState(1, 'La hoja no tiene cabeceras válidas.');
-          return;
-        }
-
-        const headerHtml = headers.map((header) => `<th>${Utils.escapeHtml(header)}</th>`).join('') + '<th>ACCIONES</th>';
-        DOM.tableHead.innerHTML = `<tr>${headerHtml}</tr>`;
-
-        if (!rows.length) {
-          DOM.tableBody.innerHTML = `<tr><td colspan="${headers.length + 1}" class="empty-state">No hay filas para mostrar.</td></tr>`;
-          UI.renderPagination(meta);
-          return;
-        }
-
-        DOM.tableBody.innerHTML = rows.map((row) => {
-          const cells = row.values.map((value, colIndex) => {
-            const id = `edit-${row.sourceIndex}-${colIndex}`;
-            return `<td><input type="text" class="form-control form-control-sm" value="${Utils.escapeHtml(value)}" id="${id}" data-row-index="${row.sourceIndex}" data-col-index="${colIndex}"></td>`;
-          }).join('');
-
-          return `
-            <tr data-row-index="${row.sourceIndex}">
-              ${cells}
-              <td>
-                <div class="d-flex gap-1">
-                  <button class="btn btn-sm btn-success" title="Guardar" data-save-row="${row.sourceIndex}" data-is-new="${row.isNew ? '1' : '0'}"><i class="bi bi-floppy"></i></button>
-                  <button class="btn btn-sm btn-danger" title="Eliminar" data-delete-row="${row.sourceIndex}" data-is-new="${row.isNew ? '1' : '0'}"><i class="bi bi-trash"></i></button>
-                </div>
-              </td>
-            </tr>`;
-        }).join('');
-        UI.renderPagination(meta);
-      },
-      renderZones(zoneSummary) {
-        if (!zoneSummary.length) {
-          DOM.resumenZonas.innerHTML = '<div class="empty-state">No hay zonas para mostrar.</div>';
-          return;
-        }
-
-        DOM.resumenZonas.innerHTML = '<div class="row row-cols-1 row-cols-md-2 g-2">' + zoneSummary.map((zone) => `
-          <div class="col">
-            <div class="p-2 border rounded bg-light small fw-bold">
-              ${Utils.escapeHtml(zone.zona)}
-              <span class="float-end text-success">${zone.disponibles} Libres</span>
-              <div class="progress" style="height:6px; margin-top:5px;">
-                <div class="progress-bar bg-success" style="width:${zone.porcentajeOcupacion}%"></div>
-              </div>
-            </div>
-          </div>`).join('') + '</div>';
-      },
-      renderChart(zoneSummary) {
-        const labels = zoneSummary.map((item) => item.zona);
-        const values = zoneSummary.map((item) => item.ocupados);
-        const colors = Utils.palette(labels.length);
-
-        if (state.chart) {
-          state.chart.destroy();
-        }
-
-        state.chart = new Chart(DOM.chartCanvas, {
-          type: 'doughnut',
-          data: {
-            labels,
-            datasets: [{ data: values, backgroundColor: colors }]
+        const response = await fetch(url.toString(), {
+          method: 'POST',
+          redirect: 'follow',
+          headers: {
+            'Content-Type': 'text/plain;charset=utf-8'
           },
-          options: {
-            maintainAspectRatio: false,
-            plugins: {
-              legend: { display: false }
-            }
-          }
+          body: JSON.stringify({ action, ...payload })
         });
+        const json = await response.json();
+        return this._normalize(json);
+      },
+
+      _normalize(json) {
+        if (!json || typeof json !== 'object') {
+          throw new Error('Respuesta inválida del servidor');
+        }
+        if (json.ok === false) {
+          throw new Error(json.message || 'Operación fallida');
+        }
+        return json.data;
       }
     };
 
     const WarehouseLogic = {
-      normalizeUbicaciones(rawData = []) {
-        return rawData
-          .map((item) => ({
-            id: Utils.safeString(item?.id).trim(),
-            codigo: Utils.safeString(item?.datosUbi?.[0]).trim(),
-            zona: Utils.safeString(item?.datosUbi?.[1]).trim(),
-            grupo: Utils.safeString(item?.datosUbi?.[2]).trim(),
-            estado: Utils.safeString(item?.estado).trim().toUpperCase() || 'DISPONIBLE',
-            hasRepoData: Boolean(item?.datosRepo)
-          }))
-          .filter((item) => item.id || item.codigo || item.zona || item.grupo);
+      normalizeUbicaciones(items = []) {
+        return items
+          .filter(Boolean)
+          .map(item => ({
+            id: String(item.id || ''),
+            codigo: String(item.datosUbi?.[0] || ''),
+            zona: String(item.datosUbi?.[1] || ''),
+            grupo: String(item.datosUbi?.[2] || ''),
+            estado: String(item.estado || 'DESCONOCIDO')
+          }));
       },
-      calculateKpis(data = []) {
-        const total = data.length;
-        const disponibles = data.filter((item) => item.estado === 'DISPONIBLE').length;
-        const sobrestock = data.filter((item) => item.estado === 'SOBRESTOCK').length;
+
+      computeKpis(rows) {
+        const total = rows.length;
+        const disponibles = rows.filter(r => r.estado === 'DISPONIBLE').length;
+        const sobrestock = rows.filter(r => r.estado === 'SOBRESTOCK').length;
         const ocupados = total - disponibles;
         return {
           total,
@@ -472,335 +240,445 @@
           porcentajeOcupado: total ? ((ocupados / total) * 100).toFixed(1) : '0.0'
         };
       },
-      summarizeZones(data = []) {
-        const zoneMap = new Map();
-        data.forEach((item) => {
-          const key = item.zona || 'SIN ZONA';
-          if (!zoneMap.has(key)) {
-            zoneMap.set(key, { zona: key, total: 0, disponibles: 0, ocupados: 0 });
-          }
-          const current = zoneMap.get(key);
-          current.total += 1;
-          if (item.estado === 'DISPONIBLE') {
-            current.disponibles += 1;
-          } else {
-            current.ocupados += 1;
-          }
+
+      groupByZona(rows) {
+        const grouped = new Map();
+        rows.forEach(row => {
+          const zona = row.zona || 'SIN ZONA';
+          if (!grouped.has(zona)) grouped.set(zona, []);
+          grouped.get(zona).push(row);
         });
-
-        return Array.from(zoneMap.values())
-          .map((zone) => ({
-            ...zone,
-            porcentajeOcupacion: zone.total ? Math.round((zone.ocupados / zone.total) * 100) : 0
-          }))
-          .sort((a, b) => a.zona.localeCompare(b.zona));
+        return [...grouped.entries()]
+          .map(([zona, items]) => {
+            const total = items.length;
+            const disponibles = items.filter(item => item.estado === 'DISPONIBLE').length;
+            const ocupados = total - disponibles;
+            return {
+              zona,
+              total,
+              disponibles,
+              ocupados,
+              ocupacionPct: total ? Math.round((ocupados / total) * 100) : 0
+            };
+          })
+          .sort((a, b) => a.zona.localeCompare(b.zona, 'es'));
       },
-      filterGeneral(data = [], term = '', filtroKPI = 'TODOS') {
-        let result = [...data];
-        if (filtroKPI === 'DISPONIBLE') {
-          result = result.filter((item) => item.estado === 'DISPONIBLE');
-        } else if (filtroKPI === 'SOBRESTOCK') {
-          result = result.filter((item) => item.estado === 'SOBRESTOCK');
-        } else if (filtroKPI === 'OCUPADOS_FULL') {
-          result = result.filter((item) => item.estado !== 'DISPONIBLE');
-        }
 
-        const needle = Utils.normalize(term);
-        if (!needle) return result;
+      filterDashboard(rows, term, summaryFilter) {
+        const filterFn = CONFIG.SUMMARY_FILTERS[summaryFilter] || CONFIG.SUMMARY_FILTERS.TODOS;
+        const text = (term || '').trim().toLowerCase();
+        return rows.filter(row => {
+          const summaryMatch = filterFn(row);
+          if (!summaryMatch) return false;
+          if (!text) return true;
+          return [row.id, row.codigo, row.zona, row.grupo, row.estado].some(v => String(v).toLowerCase().includes(text));
+        });
+      },
 
-        return result.filter((item) => [item.id, item.codigo, item.zona, item.grupo, item.estado].some((value) => Utils.normalize(value).includes(needle)));
+      filterEditable(rows, term) {
+        const text = (term || '').trim().toLowerCase();
+        if (!text) return rows;
+        return rows.filter(row => row.some(cell => String(cell ?? '').toLowerCase().includes(text)));
       },
-      filterEditableRows(rows = [], term = '') {
-        const needle = Utils.normalize(term);
-        if (!needle) return [...rows];
-        return rows.filter((row) => row.some((cell) => Utils.normalize(cell).includes(needle)));
-      },
-      paginate(data = [], page = 1, pageSize = CONFIG.FILAS_POR_PAGINA) {
-        const totalPages = Math.max(1, Math.ceil(data.length / pageSize));
-        const safePage = Math.min(Math.max(1, page), totalPages);
-        const start = (safePage - 1) * pageSize;
+
+      paginate(rows, page, size = CONFIG.PAGE_SIZE) {
+        const totalPages = Math.max(1, Math.ceil(rows.length / size));
+        const currentPage = Math.min(Math.max(1, page), totalPages);
+        const start = (currentPage - 1) * size;
         return {
-          rows: data.slice(start, start + pageSize),
-          meta: { page: safePage, totalPages }
+          rows: rows.slice(start, start + size),
+          page: currentPage,
+          totalPages
         };
       },
-      validateSheetResponse(data) {
-        if (!Array.isArray(data)) throw new Error('El servidor no devolvió una matriz válida.');
-        if (!data.length) throw new Error('La hoja está vacía.');
-        if (Array.isArray(data[0]) && Utils.safeString(data[0][0]).includes('Error')) {
-          throw new Error(Utils.safeString(data[0][0]));
-        }
-        return data;
-      },
-      buildEditableRows(rawRows = []) {
-        return rawRows.map((row) => row.map((cell) => Utils.safeString(cell)));
+
+      createPalette(count) {
+        return Array.from({ length: count }, (_, i) => `hsl(${Math.round((360 / Math.max(count, 1)) * i)}, 65%, 48%)`);
       }
     };
 
-    const Api = {
-      async fetchJson(url) {
-        const response = await fetch(url, { method: 'GET', headers: { 'Accept': 'application/json' } });
-        if (!response.ok) throw new Error(`HTTP ${response.status} al obtener datos.`);
-        const json = await response.json();
-        if (json && json.result === 'error') throw new Error(json.error || 'Respuesta inválida del servidor.');
-        return json;
+    const UI = {
+      cache() {
+        ['selectorHoja','searchInput','tableHead','tableBody','btnAnterior','btnSiguiente','infoPaginacion','resumenZonas','ctxGrafico','loader-overlay','btnNuevaFila','btnReset','btnOmisiones','kpiCards'].forEach(id => {
+          els[id.replace(/-([a-z])/g, (_, c) => c.toUpperCase())] = document.getElementById(id);
+        });
+        els.toastContainer = document.getElementById('toastContainer');
       },
-      async getUbicaciones() {
-        return Api.fetchJson(CONFIG.SCRIPT_URL);
+
+      initSelectors() {
+        els.selectorHoja.innerHTML = CONFIG.HOJAS.map(hoja => `<option value="${this.escapeHtml(hoja)}">${this.escapeHtml(hoja)}</option>`).join('');
+        els.selectorHoja.value = state.hojaActual;
       },
-      run(functionName, ...params) {
-        return new Promise((resolve, reject) => {
-          if (!window.google || !google.script || !google.script.run) {
-            reject(new Error('google.script.run no está disponible en este entorno.'));
-            return;
+
+      setLoading(show) {
+        state.loading = show;
+        els.loaderOverlay.style.display = show ? 'flex' : 'none';
+      },
+
+      showToast(message, type = 'success') {
+        const tone = {
+          success: 'text-bg-success',
+          danger: 'text-bg-danger',
+          warning: 'text-bg-warning',
+          info: 'text-bg-dark'
+        }[type] || 'text-bg-dark';
+        const wrapper = document.createElement('div');
+        wrapper.innerHTML = `
+          <div class="toast align-items-center ${tone} border-0" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="d-flex">
+              <div class="toast-body fw-semibold">${this.escapeHtml(message)}</div>
+              <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+            </div>
+          </div>`;
+        const toastEl = wrapper.firstElementChild;
+        els.toastContainer.appendChild(toastEl);
+        const toast = new bootstrap.Toast(toastEl, { delay: 4500 });
+        toast.show();
+        toastEl.addEventListener('hidden.bs.toast', () => toastEl.remove());
+      },
+
+      updateActionVisibility() {
+        els.btnNuevaFila.style.display = state.mode === 'EDIT' ? 'inline-flex' : 'none';
+        els.btnOmisiones.style.display = state.hojaActual === 'ETIQUETAR' ? 'inline-flex' : 'none';
+      },
+
+      renderDashboard() {
+        const visibleRows = WarehouseLogic.filterDashboard(state.ubicaciones, state.busqueda, state.summaryFilter);
+        state.filteredRows = visibleRows;
+        const kpis = WarehouseLogic.computeKpis(state.ubicaciones);
+
+        els.kpiCards.innerHTML = `
+          ${this.renderKpiCard('TODOS', 'Capacidad', kpis.total, '', 'dark')}
+          ${this.renderKpiCard('OCUPADOS_FULL', 'Ocupado', kpis.ocupados, `${kpis.porcentajeOcupado}%`, 'primary')}
+          ${this.renderKpiCard('SOBRESTOCK', 'Sobrestock', kpis.sobrestock, '', 'danger')}
+          ${this.renderKpiCard('DISPONIBLE', 'Libre', kpis.disponibles, `${kpis.porcentajeDisponible}%`, 'success')}
+        `;
+
+        this.renderDashboardTable();
+        this.renderChart(WarehouseLogic.groupByZona(state.ubicaciones));
+        this.renderZones(WarehouseLogic.groupByZona(state.ubicaciones));
+      },
+
+      renderKpiCard(filterKey, title, value, subtitle, color) {
+        return `
+          <div class="col clickable" data-summary-filter="${filterKey}">
+            <div class="card card-soft kpi-card p-2 border-start border-4 border-${color}">
+              <div class="kpi-title">${title}</div>
+              <div class="kpi-value text-${color}">${this.escapeHtml(String(value))}</div>
+              <div class="small fw-bold text-${color}">${this.escapeHtml(subtitle || '')}</div>
+            </div>
+          </div>`;
+      },
+
+      renderDashboardTable() {
+        const page = WarehouseLogic.paginate(state.filteredRows, state.paginaActual);
+        state.paginaActual = page.page;
+        els.tableHead.innerHTML = '<tr><th>UBICACIÓN</th><th>ZONA</th><th>GRUPO</th><th>ESTADO</th></tr>';
+        els.tableBody.innerHTML = page.rows.map(item => {
+          const badge = item.estado === 'DISPONIBLE' ? 'bg-disponible' : item.estado === 'SOBRESTOCK' ? 'bg-sobrestock' : 'bg-ocupado';
+          return `<tr>
+            <td><strong>${this.escapeHtml(item.codigo)}</strong></td>
+            <td>${this.escapeHtml(item.zona)}</td>
+            <td>${this.escapeHtml(item.grupo)}</td>
+            <td><span class="status-badge ${badge}">${this.escapeHtml(item.estado)}</span></td>
+          </tr>`;
+        }).join('') || '<tr><td colspan="4" class="text-center text-muted py-4">Sin resultados</td></tr>';
+        this.renderPagination(page.page, page.totalPages);
+      },
+
+      renderEditable() {
+        const rows = WarehouseLogic.filterEditable(state.editableRows, state.busqueda);
+        state.filteredRows = rows;
+        const page = WarehouseLogic.paginate(rows, state.paginaActual);
+        state.paginaActual = page.page;
+
+        const headerHtml = state.editableHeaders.map(h => `<th>${this.escapeHtml(String(h))}</th>`).join('') + '<th>ACCIONES</th>';
+        els.tableHead.innerHTML = `<tr>${headerHtml}</tr>`;
+        els.tableBody.innerHTML = '';
+
+        if (!page.rows.length) {
+          els.tableBody.innerHTML = '<tr><td colspan="99" class="text-center text-muted py-4">Sin resultados</td></tr>';
+          this.renderPagination(page.page, page.totalPages);
+          return;
+        }
+
+        const fragment = document.createDocumentFragment();
+        page.rows.forEach((row, i) => {
+          const realIndex = ((page.page - 1) * CONFIG.PAGE_SIZE) + i;
+          const tr = document.createElement('tr');
+          row.forEach((cell, colIdx) => {
+            const td = document.createElement('td');
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.className = 'form-control form-control-sm table-input';
+            input.value = cell == null ? '' : String(cell);
+            input.dataset.rowIndex = String(realIndex);
+            input.dataset.colIndex = String(colIdx);
+            td.appendChild(input);
+            tr.appendChild(td);
+          });
+          const tdActions = document.createElement('td');
+          tdActions.innerHTML = `
+            <div class="d-flex gap-1">
+              <button class="btn btn-success btn-sm" data-row-save="${realIndex}" title="Guardar"><i class="bi bi-floppy"></i></button>
+              <button class="btn btn-danger btn-sm" data-row-delete="${realIndex}" title="Eliminar"><i class="bi bi-trash"></i></button>
+            </div>`;
+          tr.appendChild(tdActions);
+          fragment.appendChild(tr);
+        });
+        els.tableBody.appendChild(fragment);
+        this.renderPagination(page.page, page.totalPages);
+      },
+
+      renderPagination(page, totalPages) {
+        els.infoPaginacion.textContent = `Página ${page} de ${totalPages}`;
+        els.btnAnterior.disabled = page <= 1;
+        els.btnSiguiente.disabled = page >= totalPages;
+      },
+
+      renderChart(zoneStats) {
+        if (state.chart) state.chart.destroy();
+        const colors = WarehouseLogic.createPalette(zoneStats.length);
+        state.chart = new Chart(els.ctxGrafico.getContext('2d'), {
+          type: 'doughnut',
+          data: {
+            labels: zoneStats.map(z => z.zona),
+            datasets: [{ data: zoneStats.map(z => z.ocupados), backgroundColor: colors }]
+          },
+          options: {
+            maintainAspectRatio: false,
+            plugins: { legend: { position: 'bottom' } }
           }
-          const runner = google.script.run
-            .withSuccessHandler(resolve)
-            .withFailureHandler((err) => reject(new Error(err && err.message ? err.message : String(err))));
-          if (typeof runner[functionName] !== 'function') {
-            reject(new Error(`La función ${functionName} no existe en Apps Script.`));
-            return;
-          }
-          runner[functionName](...params);
         });
       },
-      async getSheetData(sheetName) {
-        return Api.run('obtenerDataDirecta', sheetName);
+
+      renderZones(zoneStats) {
+        els.resumenZonas.innerHTML = `<div class="row row-cols-1 row-cols-md-2 g-2">${zoneStats.map(z => `
+          <div class="col">
+            <div class="border rounded p-2 bg-light small fw-semibold">
+              <div>${this.escapeHtml(z.zona)} <span class="float-end text-success">${z.disponibles} libres</span></div>
+              <div class="progress mt-2" style="height: 8px;">
+                <div class="progress-bar bg-success" style="width:${z.ocupacionPct}%"></div>
+              </div>
+            </div>
+          </div>`).join('')}</div>`;
       },
-      async saveRow(sheetName, rowIndex, values) {
-        return Api.run('guardarCambioDinamico', sheetName, rowIndex, values);
-      },
-      async appendRow(sheetName, values) {
-        return Api.run('appendRowDinamica', sheetName, values);
-      },
-      async deleteRow(sheetName, rowIndex) {
-        return Api.run('eliminarFilaDinamica', sheetName, rowIndex);
-      },
-      async executeAction(functionName, params = []) {
-        return Api.run(functionName, ...params);
+
+      escapeHtml(value) {
+        return String(value)
+          .replaceAll('&', '&amp;')
+          .replaceAll('<', '&lt;')
+          .replaceAll('>', '&gt;')
+          .replaceAll('"', '&quot;')
+          .replaceAll("'", '&#39;');
       }
     };
 
     const Controller = {
       async init() {
-        UI.setLoading(true, 'Cargando dashboard operativo...');
-        try {
-          await Controller.loadGeneralView();
-          Controller.bindEvents();
-        } catch (error) {
-          console.error(error);
-          Notifier.show(error.message || 'No se pudo inicializar el dashboard.', 'danger');
-        } finally {
-          UI.setLoading(false);
-        }
+        UI.cache();
+        UI.initSelectors();
+        this.bindEvents();
+        await this.loadDashboard();
       },
+
       bindEvents() {
-        DOM.selectorHoja.addEventListener('change', () => Controller.handleSheetChange(DOM.selectorHoja.value));
-        DOM.searchInput.addEventListener('input', Utils.debounce((event) => {
-          state.busqueda = event.target.value;
+        els.selectorHoja.addEventListener('change', () => this.changeSheet(els.selectorHoja.value));
+        els.searchInput.addEventListener('input', (event) => {
+          state.busqueda = event.target.value || '';
           state.paginaActual = 1;
-          Controller.renderCurrentView();
-        }, 200));
-        DOM.btnReset.addEventListener('click', () => Controller.resetView());
-        DOM.btnNuevaFila.addEventListener('click', () => Controller.addNewRow());
-        DOM.btnAnterior.addEventListener('click', () => Controller.changePage(-1));
-        DOM.btnSiguiente.addEventListener('click', () => Controller.changePage(1));
-
-        document.querySelectorAll('[data-kpi-filter]').forEach((node) => {
-          node.addEventListener('click', () => Controller.goToDetailAndFilter(node.dataset.kpiFilter));
+          this.renderCurrent();
         });
+        els.btnAnterior.addEventListener('click', () => this.changePage(-1));
+        els.btnSiguiente.addEventListener('click', () => this.changePage(1));
+        els.btnReset.addEventListener('click', () => this.resetView());
+        els.btnNuevaFila.addEventListener('click', () => this.addNewRow());
 
-        DOM.actionBar.addEventListener('click', async (event) => {
+        document.getElementById('actionButtons').addEventListener('click', (event) => {
           const button = event.target.closest('[data-action]');
           if (!button) return;
-          const action = button.dataset.action;
-          const params = button.dataset.requiresSheet === 'true' ? [state.hojaActual] : [];
-          await Controller.executeAction(action, params);
+          this.executeAction(button.dataset.action);
         });
 
-        DOM.tableBody.addEventListener('click', async (event) => {
-          const saveButton = event.target.closest('[data-save-row]');
-          if (saveButton) {
-            await Controller.saveRow(saveButton.dataset.saveRow, saveButton.dataset.isNew === '1');
+        document.body.addEventListener('click', (event) => {
+          const summary = event.target.closest('[data-summary-filter]');
+          if (summary) {
+            this.goToDetailAndFilter(summary.dataset.summaryFilter);
             return;
           }
-          const deleteButton = event.target.closest('[data-delete-row]');
+
+          const saveButton = event.target.closest('[data-row-save]');
+          if (saveButton) {
+            this.saveEditableRow(Number(saveButton.dataset.rowSave));
+            return;
+          }
+
+          const deleteButton = event.target.closest('[data-row-delete]');
           if (deleteButton) {
-            await Controller.deleteRow(deleteButton.dataset.deleteRow, deleteButton.dataset.isNew === '1');
+            this.deleteEditableRow(Number(deleteButton.dataset.rowDelete));
           }
         });
       },
-      async loadGeneralView() {
-        const raw = await Api.getUbicaciones();
-        state.ubicaciones = WarehouseLogic.normalizeUbicaciones(raw);
-        state.vista = CONFIG.VISTA_GENERAL;
-        state.hojaActual = CONFIG.DEFAULT_HOJA;
-        state.filtroKPI = state.filtroKPI || 'TODOS';
-        DOM.selectorHoja.value = CONFIG.DEFAULT_HOJA;
-        UI.updateActionVisibility();
-        Controller.renderCurrentView();
-      },
-      async loadEditableSheet(sheetName) {
-        const raw = await Api.getSheetData(sheetName);
-        const validated = WarehouseLogic.validateSheetResponse(raw);
-        state.headers = validated[0].map((header) => Utils.safeString(header));
-        state.datosHoja = WarehouseLogic.buildEditableRows(validated.slice(1));
-        state.newRows = [];
-        state.vista = CONFIG.VISTA_EDICION;
-        state.hojaActual = sheetName;
-        state.filtroKPI = 'TODOS';
-        UI.updateActionVisibility();
-        Controller.renderCurrentView();
-      },
-      renderCurrentView() {
-        if (state.vista === CONFIG.VISTA_GENERAL) {
-          const filtered = WarehouseLogic.filterGeneral(state.ubicaciones, state.busqueda, state.filtroKPI);
-          state.datosFiltrados = filtered;
-          const kpis = WarehouseLogic.calculateKpis(state.ubicaciones);
-          const zones = WarehouseLogic.summarizeZones(state.ubicaciones);
-          const { rows, meta } = WarehouseLogic.paginate(filtered, state.paginaActual, state.filasPorPagina);
-          state.paginaActual = meta.page;
-          UI.renderKpis(kpis);
-          UI.renderChart(zones);
-          UI.renderZones(zones);
-          UI.renderGeneralTable(rows, meta);
-        } else {
-          const indexedSourceRows = state.datosHoja.map((row, index) => ({ values: row, sourceIndex: index, isNew: false }));
-          const indexedNewRows = state.newRows.map((row) => ({ values: row.values, sourceIndex: row.localId, isNew: true }));
-          const allEditableRows = [...indexedNewRows, ...indexedSourceRows];
-          const needle = Utils.normalize(state.busqueda);
-          const filteredRows = needle
-            ? allEditableRows.filter((row) => row.values.some((cell) => Utils.normalize(cell).includes(needle)))
-            : allEditableRows;
-          state.datosFiltrados = filteredRows;
-          const { rows, meta } = WarehouseLogic.paginate(filteredRows, state.paginaActual, state.filasPorPagina);
-          state.paginaActual = meta.page;
-          UI.renderEditTable(state.headers, rows, meta);
-        }
-        UI.updateActionVisibility();
-      },
-      async handleSheetChange(sheetName) {
-        state.paginaActual = 1;
-        state.busqueda = '';
-        DOM.searchInput.value = '';
-        UI.setLoading(true, `Cargando hoja ${sheetName}...`);
-        try {
-          if (sheetName === CONFIG.DEFAULT_HOJA) {
-            await Controller.loadGeneralView();
-          } else {
-            await Controller.loadEditableSheet(sheetName);
-          }
-        } catch (error) {
-          console.error(error);
-          Notifier.show(error.message || `No se pudo cargar la hoja ${sheetName}.`, 'danger');
-        } finally {
-          UI.setLoading(false);
-        }
-      },
-      async executeAction(actionName, params = []) {
-        const confirmed = window.confirm(`¿Deseas ejecutar la acción: ${actionName}?`);
-        if (!confirmed) return;
 
-        UI.setLoading(true, `Ejecutando ${actionName}...`);
-        UI.setActionButtonsState(true);
+      async loadDashboard() {
+        UI.setLoading(true);
         try {
-          const response = await Api.executeAction(actionName, params);
-          Notifier.show(Utils.safeString(response) || `Acción ${actionName} completada.`, 'success');
-          await Controller.handleSheetChange(state.hojaActual);
+          const data = await Api.getUbicaciones();
+          state.mode = 'GENERAL';
+          state.hojaActual = 'UBICACIONES';
+          state.summaryFilter = 'TODOS';
+          state.ubicaciones = WarehouseLogic.normalizeUbicaciones(data);
+          state.busqueda = '';
+          state.paginaActual = 1;
+          els.selectorHoja.value = 'UBICACIONES';
+          els.searchInput.value = '';
+          UI.updateActionVisibility();
+          this.renderCurrent();
         } catch (error) {
-          console.error(error);
-          Notifier.show(error.message || `No se pudo ejecutar ${actionName}.`, 'danger');
+          UI.showToast(error.message, 'danger');
         } finally {
-          UI.setActionButtonsState(false);
           UI.setLoading(false);
         }
       },
-      collectRowValues(rowIndex) {
-        return state.headers.map((_, colIndex) => {
-          const input = document.getElementById(`edit-${rowIndex}-${colIndex}`);
+
+      async changeSheet(hoja) {
+        state.hojaActual = hoja;
+        state.busqueda = '';
+        els.searchInput.value = '';
+        state.paginaActual = 1;
+
+        if (hoja === 'UBICACIONES') {
+          await this.loadDashboard();
+          return;
+        }
+
+        UI.setLoading(true);
+        try {
+          const payload = await Api.getHoja(hoja);
+          const headers = payload.headers || [];
+          const rows = payload.rows || [];
+          state.mode = 'EDIT';
+          state.editableHeaders = headers;
+          state.editableRows = rows;
+          UI.updateActionVisibility();
+          this.renderCurrent();
+        } catch (error) {
+          UI.showToast(error.message, 'danger');
+        } finally {
+          UI.setLoading(false);
+        }
+      },
+
+      renderCurrent() {
+        if (state.mode === 'EDIT') {
+          UI.renderEditable();
+        } else {
+          UI.renderDashboard();
+        }
+        UI.updateActionVisibility();
+      },
+
+      changePage(delta) {
+        state.paginaActual += delta;
+        this.renderCurrent();
+      },
+
+      resetView() {
+        this.changeSheet('UBICACIONES');
+      },
+
+      addNewRow() {
+        if (state.mode !== 'EDIT') return;
+        state.editableRows.unshift(state.editableHeaders.map(() => ''));
+        state.paginaActual = 1;
+        this.renderCurrent();
+      },
+
+      async saveEditableRow(rowIndex) {
+        const inputs = [...document.querySelectorAll(`input[data-row-index="${rowIndex}"]`)];
+        if (!inputs.length) return;
+        const values = state.editableHeaders.map((_, colIndex) => {
+          const input = inputs.find(item => Number(item.dataset.colIndex) === colIndex);
           return input ? input.value : '';
         });
-      },
-      validateRow(values) {
-        if (!Array.isArray(values) || !values.length) {
-          throw new Error('La fila no contiene datos para guardar.');
-        }
-        return values.map((value) => Utils.safeString(value).trim());
-      },
-      async saveRow(rowIndex, isNew = false) {
-        UI.setLoading(true, 'Guardando cambios...');
+
+        UI.setLoading(true);
         try {
-          const values = Controller.validateRow(Controller.collectRowValues(rowIndex));
-          let message;
-          if (isNew) {
-            message = await Api.appendRow(state.hojaActual, values);
-            state.newRows = state.newRows.filter((row) => row.localId !== rowIndex);
-            state.datosHoja.unshift([...values]);
+          const isDraftRow = state.editableRows[rowIndex] && state.editableRows[rowIndex].every(cell => String(cell ?? '') === '');
+          if (isDraftRow) {
+            await Api.appendRow(state.hojaActual, values);
+            UI.showToast('Fila creada correctamente');
           } else {
-            message = await Api.saveRow(state.hojaActual, Number(rowIndex), values);
-            state.datosHoja[Number(rowIndex)] = [...values];
+            await Api.saveRow(state.hojaActual, rowIndex + 2, values);
+            UI.showToast('Fila guardada correctamente');
           }
-          Notifier.show(Utils.safeString(message) || 'Fila guardada correctamente.', 'success');
-          Controller.renderCurrentView();
+          await this.changeSheet(state.hojaActual);
         } catch (error) {
-          console.error(error);
-          Notifier.show(error.message || 'No se pudo guardar la fila.', 'danger');
+          UI.showToast(error.message, 'danger');
         } finally {
           UI.setLoading(false);
         }
       },
-      async deleteRow(rowIndex, isNew = false) {
-        const confirmed = window.confirm(isNew ? '¿Descartar fila nueva sin guardar?' : '¿Borrar fila permanentemente?');
-        if (!confirmed) return;
-        UI.setLoading(true, 'Eliminando fila...');
+
+      async deleteEditableRow(rowIndex) {
+        const row = state.editableRows[rowIndex];
+        const isDraftRow = row && row.every(cell => String(cell ?? '') === '');
+        if (isDraftRow) {
+          state.editableRows.splice(rowIndex, 1);
+          this.renderCurrent();
+          return;
+        }
+
+        if (!confirm('¿Eliminar esta fila permanentemente?')) return;
+        UI.setLoading(true);
         try {
-          if (isNew) {
-            state.newRows = state.newRows.filter((row) => row.localId !== rowIndex);
-            Notifier.show('Fila nueva descartada.', 'info');
-            Controller.renderCurrentView();
-            return;
-          }
-          const message = await Api.deleteRow(state.hojaActual, Number(rowIndex));
-          Notifier.show(Utils.safeString(message) || 'Fila eliminada correctamente.', 'success');
-          await Controller.handleSheetChange(state.hojaActual);
+          await Api.deleteRow(state.hojaActual, rowIndex + 2);
+          UI.showToast('Fila eliminada correctamente');
+          await this.changeSheet(state.hojaActual);
         } catch (error) {
-          console.error(error);
-          Notifier.show(error.message || 'No se pudo eliminar la fila.', 'danger');
+          UI.showToast(error.message, 'danger');
         } finally {
           UI.setLoading(false);
         }
       },
-      addNewRow() {
-        const emptyRow = state.headers.map(() => '');
-        state.newRows.unshift({ localId: Utils.randomId('new-row'), values: emptyRow });
-        state.paginaActual = 1;
-        Controller.renderCurrentView();
+
+      async executeAction(action) {
+        const dangerous = ['limpiarRangoGeneral', 'limpiarConOmisiones'];
+        if (dangerous.includes(action)) {
+          const confirmText = `Vas a ejecutar ${action} sobre ${state.hojaActual}. ¿Continuar?`;
+          if (!confirm(confirmText)) return;
+        }
+
+        UI.setLoading(true);
+        try {
+          const result = await Api.runAction(action, state.hojaActual);
+          UI.showToast(result.message || 'Acción ejecutada');
+          if (state.hojaActual === 'UBICACIONES') {
+            await this.loadDashboard();
+          } else {
+            await this.changeSheet(state.hojaActual);
+          }
+        } catch (error) {
+          UI.showToast(error.message, 'danger');
+        } finally {
+          UI.setLoading(false);
+        }
       },
-      changePage(direction) {
-        state.paginaActual += direction;
-        Controller.renderCurrentView();
-      },
-      resetView() {
-        state.paginaActual = 1;
+
+      goToDetailAndFilter(filterKey) {
+        state.summaryFilter = filterKey;
         state.busqueda = '';
-        state.filtroKPI = 'TODOS';
-        DOM.searchInput.value = '';
-        Controller.handleSheetChange(CONFIG.DEFAULT_HOJA);
-      },
-      goToDetailAndFilter(filter) {
-        state.filtroKPI = filter;
-        state.vista = CONFIG.VISTA_GENERAL;
-        state.hojaActual = CONFIG.DEFAULT_HOJA;
+        els.searchInput.value = '';
         state.paginaActual = 1;
-        DOM.selectorHoja.value = CONFIG.DEFAULT_HOJA;
-        DOM.btnDetalle.click();
-        Controller.renderCurrentView();
+        document.querySelector('[data-bs-target="#view-detalle"]').click();
+        state.mode = 'GENERAL';
+        state.hojaActual = 'UBICACIONES';
+        els.selectorHoja.value = 'UBICACIONES';
+        this.renderCurrent();
       }
     };
 
-    window.addEventListener('load', () => {
-      Controller.init();
-    });
+    window.addEventListener('DOMContentLoaded', () => Controller.init());
   </script>
 </body>
 </html>
